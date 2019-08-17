@@ -16,7 +16,7 @@ public class UserSettings {
 
     public UserSettings() {
         firebaseAuth = FirebaseAuth.getInstance();
-
+//sdadadad
     }
 
     public static Boolean isSignIn() {
