@@ -1,6 +1,8 @@
 package com.example.whatsappclone;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.ColorSpace;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -32,12 +34,12 @@ public class BaseChatActivity2 extends AppCompatActivity
         setContentView(R.layout.activity_base_chat2);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        FloatingActionButton fab = findViewById(R.id.fab);
+        setTitle("WhatsApp");
+        FloatingActionButton fab = findViewById(R.id.chat_floating_bt);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                //ToDo:create activity to show friends
             }
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
