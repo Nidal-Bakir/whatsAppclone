@@ -27,9 +27,8 @@ import androidx.appcompat.widget.Toolbar;
 import android.view.Menu;
 import android.widget.Toast;
 
-public class BaseChatActivity2 extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
-    Activity activity=BaseChatActivity2.this;
+public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+
     private FirebaseAuth auth=FirebaseAuth.getInstance();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,7 +91,6 @@ public class BaseChatActivity2 extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            UserSettings.deleteUser(activity,this);
             return true;
         }
 
