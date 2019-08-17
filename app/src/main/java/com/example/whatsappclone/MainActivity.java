@@ -25,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Button button=findViewById(R.id.sign_bt);
 
+        //sign up or log in to whatsApp
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -46,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        //this method will run when the user sign in or log in  as a Result of AuthUI activity
         if (auth.getCurrentUser()!=null) {
             finish();
             startActivity(new Intent(MainActivity.this,BaseChatActivity2.class));

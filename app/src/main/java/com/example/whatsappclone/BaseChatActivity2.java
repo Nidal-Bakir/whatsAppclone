@@ -1,5 +1,6 @@
 package com.example.whatsappclone;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.ColorSpace;
@@ -24,9 +25,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.view.Menu;
+import android.widget.Toast;
 
 public class BaseChatActivity2 extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+    Activity activity=BaseChatActivity2.this;
     private FirebaseAuth auth=FirebaseAuth.getInstance();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +52,8 @@ public class BaseChatActivity2 extends AppCompatActivity
         drawer.addDrawerListener(toggle);
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
+
+
     }
     @Override
     protected void onStart() {
@@ -87,6 +92,7 @@ public class BaseChatActivity2 extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            UserSettings.deleteUser(activity,this);
             return true;
         }
 

@@ -33,21 +33,26 @@ public class UserSettings {
             }
         });
     }
-    public static void deleteUser(final Activity activity, Context context){
-            String UID= FirebaseAuth.getInstance().getCurrentUser().getUid();
-        AuthUI.getInstance().delete(context).addOnCompleteListener( new OnCompleteListener<Void>() {
+
+    public static void deleteUser(final Activity activity, final Context context) {
+        //String UID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        AuthUI.getInstance().delete(context).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
-                //ToDO:delete the user chats and all subCollections
-                activity.startActivity(new Intent(activity,MainActivity.class));
-                activity.finish();
+                if (task.isSuccessful()) {
+                    //ToDO:delete the user chats and all subCollections
+                    activity.startActivity(new Intent(activity, MainActivity.class));
+                    activity.finish();
+                }
 
             }
         });
 
     }
+
     public static String getUserUID() {
-         return FirebaseAuth.getInstance().getCurrentUser().getUid();
+        return FirebaseAuth.getInstance().getCurrentUser().getUid();
     }
 
 
