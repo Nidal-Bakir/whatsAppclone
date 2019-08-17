@@ -17,7 +17,6 @@ public class UserSettings {
     public UserSettings() {
         firebaseAuth = FirebaseAuth.getInstance();
 
-
     }
 
     public static Boolean isSignIn() {
@@ -47,6 +46,10 @@ public class UserSettings {
         });
 
     }
+    public static String getUserUID() {
+         return FirebaseAuth.getInstance().getCurrentUser().getUid();
+    }
+
 
 }
 

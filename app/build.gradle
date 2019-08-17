@@ -4,6 +4,7 @@ apply plugin: 'com.google.gms.google-services'
 android {
     compileSdkVersion 28
     defaultConfig {
+        vectorDrawables.useSupportLibrary = true
         applicationId "com.example.whatsappclone"
         minSdkVersion 19
         targetSdkVersion 28
@@ -37,10 +38,11 @@ dependencies {
     implementation 'com.mindorks.android:prdownloader:0.6.0'
     //Glide
     implementation 'com.github.bumptech.glide:glide:4.9.0'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.9.0'
     //CircleImageView
     implementation 'de.hdodenhof:circleimageview:3.0.0'
-    implementation 'com.google.android.material:material:1.1.0-alpha09'
+    implementation 'com.google.android.material:material:1.0.0'
 
 
     testImplementation 'junit:junit:4.12'

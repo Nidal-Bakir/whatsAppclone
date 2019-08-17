@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         if (auth.getCurrentUser()!=null) {
             finish();
-            startActivity(new Intent(MainActivity.this,baseChatActivity.class));
+            startActivity(new Intent(MainActivity.this,BaseChatActivity2.class));
         }
 
     }

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimaryDark">#1A237E</color>
+    <color name="colorPrimaryDark">#064E46</color>
     <color name="colorPrimary">#075E55</color>
     <color name="colorAccent">#D81B60</color>
-    <color name="ActionBarwhite">#FFFFFF</color>
-    <color name="WhatsApp">#000000</color>
+    <color name="ActionBarwhite">#F8F8F8</color>
+    <color name="chatFloating">#20C559</color>
+
 </resources>
