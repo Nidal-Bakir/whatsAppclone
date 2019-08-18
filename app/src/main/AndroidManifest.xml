@@ -16,16 +16,15 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <!-- BaseChatActivity2 -->
+
         <activity
-            android:name=".BaseChatActivity2"
-            android:label="@string/title_activity_base_chat2">
+            android:name=".BaseChatActivity2">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!--end BaseChatActivity2 -->
+
 
         <activity android:name=".MainActivity" />
     </application>
