@@ -2,24 +2,23 @@ package com.example.whatsappclone;
 
 
 public class ProfileImage {
-    private String imagepath;
+    private String imagePath;
     private String imageUrl;
 
     public ProfileImage() {
         //for fireStore
     }
-    public ProfileImage(String imagepath, String imageUrl) {
-        this.imagepath = imagepath;
+
+    public ProfileImage(String imagePath, String imageUrl) {
+        this.imagePath = imagePath;
         this.imageUrl = imageUrl;
     }
 
-    public String getImagepath() {
-        return imagepath;
+    public String getImagePath() {
+        return imagePath;
     }
 
     public String getImageUrl() {
         return imageUrl;
     }
-
-
 }
