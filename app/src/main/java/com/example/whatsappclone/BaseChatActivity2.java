@@ -9,6 +9,7 @@ import android.os.Bundle;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
+import android.util.Log;
 import android.view.View;
 
 import androidx.core.view.GravityCompat;
@@ -27,8 +28,10 @@ import androidx.appcompat.widget.Toolbar;
 import android.view.Menu;
 import android.widget.Toast;
 
-public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+import java.io.IOException;
 
+public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+    private static final String TAG = "BaseChatActivity2";
     private FirebaseAuth auth=FirebaseAuth.getInstance();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +56,9 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         navigationView.setNavigationItemSelectedListener(this);
 
 
+
     }
+
     @Override
     protected void onStart() {
         super.onStart();

@@ -3,16 +3,27 @@ package com.example.whatsappclone;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
 import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 public class UserSettings {
+    private static final String TAG = "UserSettings";
+
     private FirebaseAuth firebaseAuth;
+    private static String PHONENUMBER = null;
+    private static String UID = null;
+    private static final String PROFILE = "profile";
 
     public UserSettings() {
         firebaseAuth = FirebaseAuth.getInstance();
@@ -35,7 +46,6 @@ public class UserSettings {
     }
 
     public static void deleteUser(final Activity activity, final Context context) {
-        //String UID = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         AuthUI.getInstance().delete(context).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
@@ -54,6 +64,30 @@ public class UserSettings {
     public static String getUserUID() {
         return FirebaseAuth.getInstance().getCurrentUser().getUid();
     }
+
+     public static void createprofilePage() {
+
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        PHONENUMBER = FirebaseAuth.getInstance().getCurrentUser().getPhoneNumber();
+        UID = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        UserProfile userProfile = new UserProfile("online", PHONENUMBER, UID, null, null);
+        firestore.collection(PROFILE).document(PHONENUMBER).set(userProfile, SetOptions.merge())
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Log.e(TAG, "onFailure: Failed to create profile page",e );
+            }
+        });
+
+
+
+
+    }
+
 
 
 }
