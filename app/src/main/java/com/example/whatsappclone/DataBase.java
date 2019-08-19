@@ -7,6 +7,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.AsyncTask;
 import android.provider.BaseColumns;
 import android.util.Log;
 
@@ -16,6 +17,7 @@ public class DataBase extends SQLiteOpenHelper {
     private static final String TAG = "DataBase";
     private static final int EMPTYCURSOR = 0;
     private static final String DB_NAME = "whatsApp_DB";
+    private SQLiteDatabase database;
 
     /* Inner class that defines the Profiles_Status_img table contents  */
     private class Profiles_Status implements BaseColumns {
@@ -48,6 +50,32 @@ public class DataBase extends SQLiteOpenHelper {
         private static final String CONTACT_NAME = "contact_name";
     }
 
+
+    //this class for handel the contact result
+    protected class Contact {
+        private String UID;
+        private String phone_number;
+        private String contact_name;
+
+        public Contact(String UID, String phone_number, String contact_name) {
+            this.UID = UID;
+            this.phone_number = phone_number;
+            this.contact_name = contact_name;
+        }
+
+        public String getUID() {
+            return UID;
+        }
+
+        public String getPhone_number() {
+            return phone_number;
+        }
+
+        public String getContact_name() {
+            return contact_name;
+        }
+    }
+
     private static final String SQL_CREATE_CONTACTS_TABLE =
             "CREATE TABLE " + Contacts.TABLE_NAME
                     + " ("
@@ -75,9 +103,9 @@ public class DataBase extends SQLiteOpenHelper {
 //        onCreate(db);
     }
 
-    //this will get the image for profile and status
+    //this function will get the image for profile and status
     public Profile_Status_img getUserProfileAndStatus(String UID) {
-        SQLiteDatabase database = this.getReadableDatabase();
+        database = this.getReadableDatabase();
         Cursor cursor = database.query(Profiles_Status.TABLE_NAME
                 , null
                 , Profiles_Status.UID + " = ? "
@@ -85,10 +113,10 @@ public class DataBase extends SQLiteOpenHelper {
                 , null
                 , null
                 , null);
-        if (cursor.getCount()==EMPTYCURSOR)
+        if (cursor.getCount() == EMPTYCURSOR)
             return null;
         cursor.moveToFirst();  //move to the element
-         String imagePath = cursor.getString(cursor.getColumnIndex(Profiles_Status.IMAGE_PATH));
+        String imagePath = cursor.getString(cursor.getColumnIndex(Profiles_Status.IMAGE_PATH));
         String imageUrl = cursor.getString(cursor.getColumnIndex(Profiles_Status.IMAGE_URL));
         String statusPath = cursor.getString(cursor.getColumnIndex(Profiles_Status.STATUS_PATH));
         String statusUrl = cursor.getString(cursor.getColumnIndex(Profiles_Status.STATUS_URL));
@@ -98,7 +126,7 @@ public class DataBase extends SQLiteOpenHelper {
     }
 
     public void insetUserProfileAndStatus(String UID, String phoneNumber, Profile_Status_img profile_status_img) {
-        SQLiteDatabase database = this.getWritableDatabase();
+        database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(Profiles_Status.UID, UID);
         contentValues.put(Profiles_Status.PHONE_NUMBER, phoneNumber);
@@ -112,7 +140,7 @@ public class DataBase extends SQLiteOpenHelper {
     }
 
     public void upDateProfileImage(String UID, ProfileImage profileImage) {
-        SQLiteDatabase database = this.getWritableDatabase();
+        database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(Profiles_Status.IMAGE_PATH, profileImage.getImagePath());
         contentValues.put(Profiles_Status.IMAGE_URL, profileImage.getImageUrl());
@@ -125,7 +153,7 @@ public class DataBase extends SQLiteOpenHelper {
     }
 
     public void upDateSatusImage(String UID, Status status) {
-        SQLiteDatabase database = this.getWritableDatabase();
+        database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(Profiles_Status.STATUS_PATH, status.getStatusPath());
         contentValues.put(Profiles_Status.STATUS_URL, status.getStatusUrl());
@@ -137,5 +165,98 @@ public class DataBase extends SQLiteOpenHelper {
 
 
     }
+
+    public Contact getContact(String UID, String phone_number) {
+        database = this.getReadableDatabase();
+        Cursor cursor;
+        //so i can search using UID OR phone number
+        if (UID != null)
+            cursor = database.query(
+                    Contacts.TABLE_NAME
+                    , null
+                    , Contacts.UID + " = ?"
+                    , new String[]{UID}
+                    , null, null, null);
+        else cursor = database.query(
+                Contacts.TABLE_NAME
+                , null
+                , Contacts.PHONE_NUMBER + " = ?"
+                , new String[]{phone_number}
+                , null, null, null);
+        if (cursor.getCount() != EMPTYCURSOR) {
+            cursor.moveToFirst();
+            return new Contact(
+                    cursor.getString(cursor.getColumnIndex(Contacts.UID))
+                    , cursor.getString(cursor.getColumnIndex(Contacts.PHONE_NUMBER))
+                    , cursor.getString(cursor.getColumnIndex(Contacts.CONTACT_NAME))
+            );
+        }
+        Log.e(TAG, "getContact: can't find the contact");
+        return null;
+    }
+
+    public void addContact(Contact contact) {
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(Contacts.UID, contact.UID);
+        contentValues.put(Contacts.PHONE_NUMBER, contact.phone_number);
+        contentValues.put(Contacts.CONTACT_NAME, contact.contact_name);
+        database.insert(
+                Contacts.TABLE_NAME
+                , null
+                , contentValues);
+
+    }
+
+    public void updateContact(String contactName, String UID, String phone_number) {
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(Contacts.CONTACT_NAME, contactName);
+        //so i can update using UID OR phone number
+        if (UID != null)
+            database.update(
+                    Contacts.TABLE_NAME
+                    , contentValues
+                    , Contacts.UID + " = ?"
+                    , new String[]{UID});
+        else database.update(
+                Contacts.TABLE_NAME
+                , contentValues
+                , Contacts.PHONE_NUMBER + " = ?"
+                , new String[]{phone_number});
+    }
+
+    protected class SyncContactsWithCloud extends AsyncTask<Void, Void, Void> {
+        private boolean forceToSync =true;
+        public SyncContactsWithCloud(boolean forceToSync) {
+            this.forceToSync = forceToSync;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            if (forceToSync){
+                //read all contacts in phone and sync them
+                //and add the new contacts to data base if there is any **
+                // and Check the compatibility between contacts names in Db and user contacts names
+            }else {
+                //if the Contacts_Table is Empty the contacts will sync
+                // and Check the compatibility between contacts names in Db and user contacts names
+            }
+
+
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            return null;
+
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+        }
+    }
+
 
 }

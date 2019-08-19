@@ -1,9 +1,12 @@
 package com.example.whatsappclone;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.ColorSpace;
+import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -12,6 +15,9 @@ import com.google.android.material.snackbar.Snackbar;
 import android.util.Log;
 import android.view.View;
 
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 
@@ -27,24 +33,101 @@ import androidx.appcompat.widget.Toolbar;
 
 import android.view.Menu;
 import android.widget.Toast;
+
 import com.facebook.stetho.Stetho;
+import com.squareup.okhttp.internal.Version;
+
 import java.io.IOException;
 
 public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "BaseChatActivity2";
-    private FirebaseAuth auth=FirebaseAuth.getInstance();
+    private FirebaseAuth auth = FirebaseAuth.getInstance();
+    private static final int RECORD_AUDIO_REQUEST_CODE = 288;
+    private static final int CAMERA_REQUEST_CODE = 955;
+    private static final int READ_CONTACTS_REQUEST_CODE = 873;
+    private static final int WRITE_CONTACTS_REQUEST_CODE = 29;
+    private static final int READ_EXTERNAL_STORAGE_REQUEST_CODE = 13;
+    private static final int WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 481;
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+      switch (requestCode){
+          case RECORD_AUDIO_REQUEST_CODE:
+              // If request is cancelled, the result arrays are empty.
+              if (grantResults.length > 0
+                      && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                  // permission was granted
+              } else {
+                  // permission denied
+                  Toast.makeText(this, "Permission denied to RECORD voice messages", Toast.LENGTH_SHORT).show();
+              }
+              break;
+          case CAMERA_REQUEST_CODE:
+              if (grantResults.length > 0
+                      && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                  // permission was granted
+              } else {
+                  // permission denied
+                  Toast.makeText(this, "Permission denied to take photo ", Toast.LENGTH_SHORT).show();
+              }
+              break;
+          case READ_CONTACTS_REQUEST_CODE:
+              if (grantResults.length > 0
+                      && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                  // permission was granted
+              } else {
+                  // permission denied
+                  Toast.makeText(this, "Permission denied to read your contacts", Toast.LENGTH_SHORT).show();
+              }
+              break;
+          case WRITE_CONTACTS_REQUEST_CODE:
+              if (grantResults.length > 0
+                      && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                  // permission was granted
+              } else {
+                  // permission denied
+                  Toast.makeText(this, "Permission denied on write ", Toast.LENGTH_SHORT).show();
+              }
+              break;
+          case READ_EXTERNAL_STORAGE_REQUEST_CODE:
+              if (grantResults.length > 0
+                      && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                  // permission was granted
+              } else {
+                  // permission denied
+                  Toast.makeText(this, "Permission denied to read your External storage", Toast.LENGTH_SHORT).show();
+              }
+              break;
+          case WRITE_EXTERNAL_STORAGE_REQUEST_CODE:
+              if (grantResults.length > 0
+                      && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                  // permission was granted
+              } else {
+                  // permission denied
+                  Toast.makeText(this, "Permission denied to write on your External storage", Toast.LENGTH_SHORT).show();
+              }
+              break;
+      }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base_chat2);
-        if (auth.getCurrentUser()==null) {
-            startActivity(new Intent(BaseChatActivity2.this,MainActivity.class));
+        if (auth.getCurrentUser() == null) {
+            startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
             finish();
-        }else {
+        } else {
+            // ask for all Permissions
+            AskForPermissions();
+            DataBase dataBase=new DataBase(this);
+
+            // for DataBase Debug
             Stetho.initializeWithDefaults(this);
             Toolbar toolbar = findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
             setTitle("WhatsApp");
+            //open the contacts activity
             FloatingActionButton fab = findViewById(R.id.chat_floating_bt);
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -59,16 +142,66 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             drawer.addDrawerListener(toggle);
             toggle.syncState();
             navigationView.setNavigationItemSelectedListener(this);
+        }
+    }
+
+    private void AskForPermissions() {
+        if (Build.VERSION.SDK_INT > 23) {
+            //  RECORD AUDIO PERMISSION
+            if (ContextCompat.checkSelfPermission(this
+                    , Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.RECORD_AUDIO))
+                    Toast.makeText(this, " the app need this permission to send voice messages!", Toast.LENGTH_SHORT).show();
+                else
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, RECORD_AUDIO_REQUEST_CODE);
+            // READ CONTACTS PERMISSION
+            if (ContextCompat.checkSelfPermission(this
+                    , Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED)
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_CONTACTS))
+                    Toast.makeText(this, " the app need this permission to Sync you contacts with our servers!", Toast.LENGTH_SHORT).show();
+                else
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_CONTACTS}, READ_CONTACTS_REQUEST_CODE);
+            // WRITE CONTACTS PERMISSION
+            if (ContextCompat.checkSelfPermission(this
+                    , Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED)
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_CONTACTS))
+                    Toast.makeText(this, " the app need this permission to Sync you contacts with our servers!", Toast.LENGTH_SHORT).show();
+                else
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_CONTACTS}, WRITE_CONTACTS_REQUEST_CODE);
+            // WRITE EXTERNAL STORAGE PERMISSION
+            if (ContextCompat.checkSelfPermission(this
+                    , Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                    Toast.makeText(this, " the app need this permission to store your data!", Toast.LENGTH_SHORT).show();
+                else
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},WRITE_EXTERNAL_STORAGE_REQUEST_CODE);
+            //READ EXTERNAL STORAGE PERMISSION
+            if (ContextCompat.checkSelfPermission(this
+                    , Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE))
+                    Toast.makeText(this, " the app need this permission to store and read your data!", Toast.LENGTH_SHORT).show();
+                else
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, READ_EXTERNAL_STORAGE_REQUEST_CODE);
+            // CAMERA PERMISSION
+                if (ContextCompat.checkSelfPermission(this
+                    , Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA))
+                    Toast.makeText(this, " the app need this permission to send images!", Toast.LENGTH_SHORT).show();
+                else
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST_CODE);
+
 
         }
+
+
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        if (auth.getCurrentUser()==null) {
+        if (auth.getCurrentUser() == null) {
             finish();
-            startActivity(new Intent(BaseChatActivity2.this,MainActivity.class));
+            startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
         }
 
     }
@@ -118,7 +251,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
         } else if (id == R.id.nav_settings) {
 
-        }  else if (id == R.id.nav_share) {
+        } else if (id == R.id.nav_share) {
 
         } else if (id == R.id.nav_send) {
 
