@@ -120,10 +120,11 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         } else {
             // ask for all Permissions
             AskForPermissions();
-            DataBase dataBase=new DataBase(this);
-
             // for DataBase Debug
             Stetho.initializeWithDefaults(this);
+            DataBase dataBase=new DataBase(this);
+            SyncContactsWithClouldDB contactsWithClouldDB=new SyncContactsWithClouldDB();
+            contactsWithClouldDB.execute(false);
             Toolbar toolbar = findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
             setTitle("WhatsApp");

@@ -226,37 +226,5 @@ public class DataBase extends SQLiteOpenHelper {
                 , new String[]{phone_number});
     }
 
-    protected class SyncContactsWithCloud extends AsyncTask<Void, Void, Void> {
-        private boolean forceToSync =true;
-        public SyncContactsWithCloud(boolean forceToSync) {
-            this.forceToSync = forceToSync;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            if (forceToSync){
-                //read all contacts in phone and sync them
-                //and add the new contacts to data base if there is any **
-                // and Check the compatibility between contacts names in Db and user contacts names
-            }else {
-                //if the Contacts_Table is Empty the contacts will sync
-                // and Check the compatibility between contacts names in Db and user contacts names
-            }
-
-
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            return null;
-
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid) {
-            super.onPostExecute(aVoid);
-        }
-    }
-
 
 }
