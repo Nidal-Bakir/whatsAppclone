@@ -27,7 +27,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import android.view.Menu;
 import android.widget.Toast;
-
+import com.facebook.stetho.Stetho;
 import java.io.IOException;
 
 public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -37,26 +37,30 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base_chat2);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        setTitle("WhatsApp");
-        FloatingActionButton fab = findViewById(R.id.chat_floating_bt);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //ToDo:create activity to show friends
-            }
-        });
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-        navigationView.setNavigationItemSelectedListener(this);
+        if (auth.getCurrentUser()==null) {
+            startActivity(new Intent(BaseChatActivity2.this,MainActivity.class));
+            finish();
+        }else {
+            Stetho.initializeWithDefaults(this);
+            Toolbar toolbar = findViewById(R.id.toolbar);
+            setSupportActionBar(toolbar);
+            setTitle("WhatsApp");
+            FloatingActionButton fab = findViewById(R.id.chat_floating_bt);
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //ToDo:create activity to show friends
+                }
+            });
+            DrawerLayout drawer = findViewById(R.id.drawer_layout);
+            NavigationView navigationView = findViewById(R.id.nav_view);
+            ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                    this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+            drawer.addDrawerListener(toggle);
+            toggle.syncState();
+            navigationView.setNavigationItemSelectedListener(this);
 
-
-
+        }
     }
 
     @Override

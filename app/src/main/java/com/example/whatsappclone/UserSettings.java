@@ -21,8 +21,8 @@ public class UserSettings {
     private static final String TAG = "UserSettings";
 
     private FirebaseAuth firebaseAuth;
-    private static String PHONENUMBER = null;
-    private static String UID = null;
+    public static String PHONENUMBER = FirebaseAuth.getInstance().getCurrentUser().getPhoneNumber();
+    public static String UID = FirebaseAuth.getInstance().getCurrentUser().getUid();
     private static final String PROFILE = "profile";
 
     public UserSettings() {
@@ -61,9 +61,7 @@ public class UserSettings {
 
     }
 
-    public static String getUserUID() {
-        return FirebaseAuth.getInstance().getCurrentUser().getUid();
-    }
+
 
      public static void createprofilePage() {
 

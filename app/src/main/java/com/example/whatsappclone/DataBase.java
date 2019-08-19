@@ -1,6 +1,7 @@
 package com.example.whatsappclone;
 
 
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -13,7 +14,7 @@ import androidx.annotation.Nullable;
 
 public class DataBase extends SQLiteOpenHelper {
     private static final String TAG = "DataBase";
-
+    private static final int EMPTYCURSOR = 0;
     private static final String DB_NAME = "whatsApp_DB";
 
     /* Inner class that defines the Profiles_Status_img table contents  */
@@ -84,8 +85,10 @@ public class DataBase extends SQLiteOpenHelper {
                 , null
                 , null
                 , null);
-        String imagePath = cursor.getString(cursor.getColumnIndex(Profiles_Status.IMAGE_PATH));
-        Log.d(TAG, "getUserProfileAndStatus: " + imagePath);
+        if (cursor.getCount()==EMPTYCURSOR)
+            return null;
+        cursor.moveToFirst();  //move to the element
+         String imagePath = cursor.getString(cursor.getColumnIndex(Profiles_Status.IMAGE_PATH));
         String imageUrl = cursor.getString(cursor.getColumnIndex(Profiles_Status.IMAGE_URL));
         String statusPath = cursor.getString(cursor.getColumnIndex(Profiles_Status.STATUS_PATH));
         String statusUrl = cursor.getString(cursor.getColumnIndex(Profiles_Status.STATUS_URL));
@@ -108,16 +111,31 @@ public class DataBase extends SQLiteOpenHelper {
 
     }
 
-    public void upDateProfileImage(String UID, String profilePath, String profileUrl) {
+    public void upDateProfileImage(String UID, ProfileImage profileImage) {
         SQLiteDatabase database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
-        contentValues.put(Profiles_Status.IMAGE_PATH, profilePath);
-        contentValues.put(Profiles_Status.IMAGE_URL, profileUrl);
+        contentValues.put(Profiles_Status.IMAGE_PATH, profileImage.getImagePath());
+        contentValues.put(Profiles_Status.IMAGE_URL, profileImage.getImageUrl());
+
         database.update(
                 Profiles_Status.TABLE_NAME
                 , contentValues
                 , Profiles_Status.UID + " = ?"
                 , new String[]{UID});
+    }
+
+    public void upDateSatusImage(String UID, Status status) {
+        SQLiteDatabase database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(Profiles_Status.STATUS_PATH, status.getStatusPath());
+        contentValues.put(Profiles_Status.STATUS_URL, status.getStatusUrl());
+        database.update(
+                Profiles_Status.TABLE_NAME
+                , contentValues
+                , Profiles_Status.UID + "= ?"
+                , new String[]{UID});
+
+
     }
 
 }
