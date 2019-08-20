@@ -5,19 +5,22 @@ import android.content.Context;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.provider.ContactsContract;
-import android.telephony.TelephonyManager;
+
 import android.util.Log;
 
-public class SyncContactsWithClouldDB extends AsyncTask<Boolean, Void, Void> {
+public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
+    private static final String TAG = "SyncContactsWithCloudDB";
     private Context context;
     private String countryCode;
-    private static final String TAG = "SyncContactsWithClouldD";
+    //i.g US this will use with libphonenumber lib
+    // to handle the numbers whose  doesn't have area code i.g(+1)
+
 
     /**
      * this class is the responsible for download the profile images
      * and the Status image
      **/
-    public SyncContactsWithClouldDB(Context context,String countryCode) {
+    public SyncContactsWithCloudDB(Context context,String countryCode) {
         this.countryCode=countryCode;
         this.context = context;
 
@@ -43,7 +46,7 @@ public class SyncContactsWithClouldDB extends AsyncTask<Boolean, Void, Void> {
         }
         return null;
     }
-
+     //get all contacts from user phone
     private void getContactsFromUserPhone() {
         ContentResolver contentResolver = context.getContentResolver();
         Cursor cursor = contentResolver.query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
