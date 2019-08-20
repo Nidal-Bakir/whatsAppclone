@@ -1,17 +1,16 @@
 package com.example.whatsappclone;
 
 import android.Manifest;
-import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.graphics.ColorSpace;
+import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
-
+import android.provider.ContactsContract;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
 
@@ -35,9 +34,6 @@ import android.view.Menu;
 import android.widget.Toast;
 
 import com.facebook.stetho.Stetho;
-import com.squareup.okhttp.internal.Version;
-
-import java.io.IOException;
 
 public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "BaseChatActivity2";
@@ -48,6 +44,8 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private static final int WRITE_CONTACTS_REQUEST_CODE = 29;
     private static final int READ_EXTERNAL_STORAGE_REQUEST_CODE = 13;
     private static final int WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 481;
+
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -114,6 +112,9 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base_chat2);
+        TelephonyManager tm = (TelephonyManager)getSystemService(TELEPHONY_SERVICE);
+        final String countryCode  = tm.getSimCountryIso();
+        Log.d(TAG, "onCreate: "+countryCode);
         if (auth.getCurrentUser() == null) {
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
             finish();
@@ -123,7 +124,8 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             // for DataBase Debug
             Stetho.initializeWithDefaults(this);
             DataBase dataBase=new DataBase(this);
-            SyncContactsWithClouldDB contactsWithClouldDB=new SyncContactsWithClouldDB();
+            SyncContactsWithClouldDB contactsWithClouldDB=new SyncContactsWithClouldDB(getApplicationContext(),countryCode);
+            contactsWithClouldDB.execute(false);
             contactsWithClouldDB.execute(false);
             Toolbar toolbar = findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
@@ -143,8 +145,14 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             drawer.addDrawerListener(toggle);
             toggle.syncState();
             navigationView.setNavigationItemSelectedListener(this);
+
+
         }
     }
+
+
+
+
 
     private void AskForPermissions() {
         if (Build.VERSION.SDK_INT > 23) {
