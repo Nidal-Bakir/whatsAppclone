@@ -23,7 +23,7 @@ public class DataBase extends SQLiteOpenHelper {
 
     /* Inner class that defines the Profiles_Status_img table contents  */
     private class Profiles_Status implements BaseColumns {
-        private static final String TABLE_NAME = "Profiles_Image";
+        private static final String TABLE_NAME = "Profiles_Status";
         private static final String UID = "uid";
         private static final String PHONE_NUMBER = "phone_number";
         private static final String IMAGE_PATH = "imagePath";
@@ -52,7 +52,6 @@ public class DataBase extends SQLiteOpenHelper {
         private static final String CONTACT_NAME = "contact_name";
     }
 
-
     //this class for handel the contact result
     public static class Contact {
         private String UID;
@@ -68,6 +67,8 @@ public class DataBase extends SQLiteOpenHelper {
         public String getUID() {
             return UID;
         }
+
+        public void setUID(String UID) { this.UID = UID; }
 
         public String getPhone_number() {
             return phone_number;
@@ -195,6 +196,13 @@ public class DataBase extends SQLiteOpenHelper {
         }
         Log.e(TAG, "getContact: can't find the contact");
         return null;
+    }
+
+    public boolean isContactTableEmpty() {
+        database = this.getReadableDatabase();
+        Cursor cursor = database.query(Contacts.TABLE_NAME
+                , null, null, null, null, null, null);
+        return cursor.getCount() == EMPTYCURSOR;
     }
 
     public void addContact(Contact contact) {
