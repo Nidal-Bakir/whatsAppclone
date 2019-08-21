@@ -1,4 +1,4 @@
-package com.example.whatsappclone;
+package com.example.whatsappclone.WhatsApp_Models;
 
 public class Status {
     private String statusPath;

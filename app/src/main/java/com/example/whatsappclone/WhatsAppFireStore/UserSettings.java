@@ -1,13 +1,14 @@
-package com.example.whatsappclone;
+package com.example.whatsappclone.WhatsAppFireStore;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.example.whatsappclone.MainActivity;
+import com.example.whatsappclone.WhatsApp_Models.UserProfile;
 import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;

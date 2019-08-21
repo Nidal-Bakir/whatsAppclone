@@ -1,17 +1,19 @@
-package com.example.whatsappclone;
+package com.example.whatsappclone.WhatsAppDataBase;
 
 
-import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.os.AsyncTask;
 import android.provider.BaseColumns;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+
+import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
+import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
+import com.example.whatsappclone.WhatsApp_Models.Status;
 
 public class DataBase extends SQLiteOpenHelper {
     private static final String TAG = "DataBase";
@@ -52,7 +54,7 @@ public class DataBase extends SQLiteOpenHelper {
 
 
     //this class for handel the contact result
-    protected class Contact {
+    public static class Contact {
         private String UID;
         private String phone_number;
         private String contact_name;

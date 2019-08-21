@@ -1,4 +1,4 @@
-package com.example.whatsappclone;
+package com.example.whatsappclone.WhatsApp_Models;
 
 public class Profile_Status_img {
     private ProfileImage profileImage;
@@ -12,12 +12,15 @@ public class Profile_Status_img {
     public String getProfilePath() {
         return profileImage.getImagePath();
     }
+
     public String getProfileUrl() {
         return profileImage.getImageUrl();
     }
+
     public String getStatusPath() {
         return status.getStatusPath();
     }
+
     public String getStatusUrl() {
         return status.getStatusUrl();
     }

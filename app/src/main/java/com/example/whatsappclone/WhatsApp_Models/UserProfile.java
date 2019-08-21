@@ -1,6 +1,4 @@
-package com.example.whatsappclone;
-
-import java.util.List;
+package com.example.whatsappclone.WhatsApp_Models;
 
 public class UserProfile {
     private String onLineStatus;

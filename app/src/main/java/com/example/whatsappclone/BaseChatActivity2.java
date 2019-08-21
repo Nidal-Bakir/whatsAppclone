@@ -1,16 +1,15 @@
 package com.example.whatsappclone;
 
 import android.Manifest;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
 
+import com.example.whatsappclone.WhatsAppDataBase.DataBase;
+import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import android.provider.ContactsContract;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.View;
