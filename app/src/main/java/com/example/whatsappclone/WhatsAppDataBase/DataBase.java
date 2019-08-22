@@ -68,7 +68,9 @@ public class DataBase extends SQLiteOpenHelper {
             return UID;
         }
 
-        public void setUID(String UID) { this.UID = UID; }
+        public void setUID(String UID) {
+            this.UID = UID;
+        }
 
         public String getPhone_number() {
             return phone_number;
@@ -133,6 +135,7 @@ public class DataBase extends SQLiteOpenHelper {
         ContentValues contentValues = new ContentValues();
         contentValues.put(Profiles_Status.UID, UID);
         contentValues.put(Profiles_Status.PHONE_NUMBER, phoneNumber);
+        if ()
         contentValues.put(Profiles_Status.IMAGE_PATH, profile_status_img.getProfilePath());
         contentValues.put(Profiles_Status.IMAGE_URL, profile_status_img.getProfileUrl());
         contentValues.put(Profiles_Status.STATUS_PATH, profile_status_img.getStatusPath());

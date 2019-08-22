@@ -25,4 +25,11 @@ public class Profile_Status_img {
         return status.getStatusUrl();
     }
 
+    public ProfileImage getProfileImage() {
+        return profileImage;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
 }

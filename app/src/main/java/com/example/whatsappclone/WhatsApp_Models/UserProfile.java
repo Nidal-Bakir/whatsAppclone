@@ -3,7 +3,7 @@ package com.example.whatsappclone.WhatsApp_Models;
 public class UserProfile {
     private String onLineStatus;
     private String phoneNumber;
-    private String UID;
+    private String uid;
     private ProfileImage profileImage;
     private Status status;
 
@@ -11,10 +11,10 @@ public class UserProfile {
         //for fireBase firesStore
     }
 
-    public UserProfile(String onLineStatus, String phoneNumber, String UID, ProfileImage profileImage, Status status) {
+    public UserProfile(String onLineStatus, String phoneNumber, String uid, ProfileImage profileImage, Status status) {
         this.onLineStatus = onLineStatus;
         this.phoneNumber = phoneNumber;
-        this.UID = UID;
+        this.uid = uid;
         this.profileImage = profileImage;
         this.status = status;
     }
@@ -27,8 +27,8 @@ public class UserProfile {
         return phoneNumber;
     }
 
-    public String getUID() {
-        return UID;
+    public String getUid() {
+        return uid;
     }
 
     public ProfileImage getProfileImage() {
