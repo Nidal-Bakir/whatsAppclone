@@ -1,4 +1,4 @@
-package com.example.whatsappclone;
+package com.example.whatsappclone.ActivityClass;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.AuthUI.IdpConfig;

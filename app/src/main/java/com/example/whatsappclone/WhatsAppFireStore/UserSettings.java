@@ -7,7 +7,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.example.whatsappclone.MainActivity;
+import com.example.whatsappclone.ActivityClass.MainActivity;
 import com.example.whatsappclone.WhatsApp_Models.UserProfile;
 import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.tasks.OnCompleteListener;

@@ -1,8 +1,7 @@
-package com.example.whatsappclone;
+package com.example.whatsappclone.ActivityClass;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
-import android.os.AsyncTask;
 import android.util.Log;
 
 import java.io.IOException;

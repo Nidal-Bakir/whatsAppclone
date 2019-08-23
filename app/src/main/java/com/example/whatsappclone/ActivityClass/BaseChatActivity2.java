@@ -1,12 +1,12 @@
-package com.example.whatsappclone;
+package com.example.whatsappclone.ActivityClass;
 
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 
+import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -116,7 +116,6 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         // to handle the numbers whose  doesn't have area code i.g(+1)
         TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
         final String countryCode = tm.getSimCountryIso();
-        Log.d(TAG, "onCreate: " + countryCode);
         if (auth.getCurrentUser() == null) {
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
             finish();
@@ -138,7 +137,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    //ToDo:create activity to show friends
+                    startActivity(new Intent(BaseChatActivity2.this,ContactsActivity.class));
                 }
             });
             DrawerLayout drawer = findViewById(R.id.drawer_layout);

@@ -6,6 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteQueryBuilder;
 import android.provider.BaseColumns;
 import android.util.Log;
 
@@ -14,6 +15,9 @@ import androidx.annotation.Nullable;
 import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
 import com.example.whatsappclone.WhatsApp_Models.Status;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class DataBase extends SQLiteOpenHelper {
     private static final String TAG = "DataBase";
@@ -89,6 +93,25 @@ public class DataBase extends SQLiteOpenHelper {
                     + Contacts.CONTACT_NAME + " TEXT "
                     + ")";
 
+    //class for handel the contact and profile image
+    public static class Contact_Profile {
+        private ProfileImage profileImage;
+        private Contact contact;
+
+        public Contact_Profile(ProfileImage profileImage, Contact contact) {
+            this.profileImage = profileImage;
+            this.contact = contact;
+        }
+
+        public ProfileImage getProfileImage() {
+            return profileImage;
+        }
+
+        public Contact getContact() {
+            return contact;
+        }
+    }
+
 
     public DataBase(@Nullable Context context) {
         super(context, DB_NAME, null, 1);
@@ -135,11 +158,16 @@ public class DataBase extends SQLiteOpenHelper {
         ContentValues contentValues = new ContentValues();
         contentValues.put(Profiles_Status.UID, UID);
         contentValues.put(Profiles_Status.PHONE_NUMBER, phoneNumber);
-        if ()
-        contentValues.put(Profiles_Status.IMAGE_PATH, profile_status_img.getProfilePath());
-        contentValues.put(Profiles_Status.IMAGE_URL, profile_status_img.getProfileUrl());
-        contentValues.put(Profiles_Status.STATUS_PATH, profile_status_img.getStatusPath());
-        contentValues.put(Profiles_Status.STATUS_URL, profile_status_img.getStatusUrl());
+        //handel if the profile don't have profile image
+        if (profile_status_img.getStatus() != null) {
+            contentValues.put(Profiles_Status.STATUS_PATH, profile_status_img.getStatusPath());
+            contentValues.put(Profiles_Status.STATUS_URL, profile_status_img.getStatusUrl());
+        }
+        //handel if the profile don't status
+        if (profile_status_img.getProfileImage() != null) {
+            contentValues.put(Profiles_Status.IMAGE_PATH, profile_status_img.getProfilePath());
+            contentValues.put(Profiles_Status.IMAGE_URL, profile_status_img.getProfileUrl());
+        }
         database.insert(Profiles_Status.TABLE_NAME, null, contentValues);
 
 
@@ -197,8 +225,34 @@ public class DataBase extends SQLiteOpenHelper {
                     , cursor.getString(cursor.getColumnIndex(Contacts.CONTACT_NAME))
             );
         }
-        Log.e(TAG, "getContact: can't find the contact");
         return null;
+    }
+
+    public List<Contact_Profile> getAllContact() {
+        database = this.getReadableDatabase();
+        List<Contact_Profile> contact_profiles = new ArrayList<>();
+        Cursor cursor = database.query(Contacts.TABLE_NAME
+                , null, null, null, null, null, Contacts.CONTACT_NAME);
+        //loop throw all contact and get them
+        while (cursor.moveToNext()) {
+            Cursor ProfileCursor = database.query(Profiles_Status.TABLE_NAME
+                    , new String[]{Profiles_Status.IMAGE_PATH, Profiles_Status.IMAGE_URL}
+                    , Profiles_Status.UID + " = ?"
+                    , new String[]{cursor.getString(cursor.getColumnIndex(Contacts.UID))}
+                    , null
+                    , null
+                    , null);
+            //store the values
+            ProfileImage profileImage = new ProfileImage(ProfileCursor.getString(ProfileCursor.getColumnIndex(Profiles_Status.IMAGE_PATH))
+                    , ProfileCursor.getString(ProfileCursor.getColumnIndex(Profiles_Status.IMAGE_PATH)));
+            Contact contact = new Contact(cursor.getString(cursor.getColumnIndex(Contacts.UID))
+                    , cursor.getString(cursor.getColumnIndex(Contacts.PHONE_NUMBER))
+                    , cursor.getString(cursor.getColumnIndex(Contacts.CONTACT_NAME)));
+            //add to list
+            contact_profiles.add(new Contact_Profile(profileImage, contact));
+
+        }
+        return contact_profiles;
     }
 
     public boolean isContactTableEmpty() {

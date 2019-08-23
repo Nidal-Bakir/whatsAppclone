@@ -11,13 +11,11 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
-import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
 import com.example.whatsappclone.WhatsApp_Models.UserProfile;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -78,7 +76,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
             // and Check the compatibility between contacts names in Db and user contacts names
             if (dataBase.isContactTableEmpty()) {
                 force_syncContacts(contacts);
-            }else syncContacts(contacts);
+            } else syncContacts(contacts);
         }
         return null;
     }
@@ -165,22 +163,22 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                     for (QueryDocumentSnapshot snapshot : taskResult) {
                         UserProfile profile = snapshot.toObject(UserProfile.class);
                         contact.setUID(profile.getUid());
-                        Log.d(TAG, "onComplete: "+profile.getUid());
                         //add the contact to contacts table
+                        //if the data exist just upDate the data
                         if (dataBase.getContact(profile.getUid(), null) == null)
                             dataBase.addContact(contact);
-                        else
+                        else //update
                             dataBase.updateContact(contact.getContact_name(), profile.getUid(), null);
-
                         Profile_Status_img profile_status = new Profile_Status_img(
                                 profile.getProfileImage()
                                 , profile.getStatus());
                         //add the profile image and status to the profile_status table
+                            //if the data exist just upDate the data
                         if (dataBase.getUserProfileAndStatus(profile.getUid()) == null)
                             dataBase.insetUserProfileAndStatus(profile.getUid()
                                     , profile.getPhoneNumber()
                                     , profile_status);
-                        else {
+                        else {//update
                             dataBase.upDateProfileImage(profile.getUid(), profile.getProfileImage());
                             dataBase.upDateSatusImage(profile.getUid(), profile.getStatus());
                         }
