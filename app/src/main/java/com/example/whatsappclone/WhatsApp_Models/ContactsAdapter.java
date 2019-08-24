@@ -1,20 +1,28 @@
 package com.example.whatsappclone.WhatsApp_Models;
 
 import android.content.Context;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 
 import java.util.List;
 
+import de.hdodenhof.circleimageview.CircleImageView;
+
 public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ViewHolder> {
     private static final String TAG = "ContactsAdapter";
     private List<DataBase.Contact_Profile> contact_profiles;
-    Context context;
+    private Context context;
+    private OnItemClickListener listener;
 
     public ContactsAdapter(List<DataBase.Contact_Profile> contact_profiles, Context context) {
         this.contact_profiles = contact_profiles;
@@ -24,23 +32,54 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ViewHo
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return null;
+           View view=LayoutInflater.from(parent.getContext()).inflate(R.layout.item_contact,parent,false);
+        return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
 
+        Glide.with(context)
+                .load(contact_profiles.get(position).getProfileImage().getImageUrl())
+                .error(Glide.with(context).load(R.drawable.ic_default_avatar_profile))
+                .into(holder.image);
+        holder.name.setText(contact_profiles.get(position).getContact().getContact_name());
+
     }
 
     @Override
     public int getItemCount() {
-        return 0;
+        return contact_profiles.size();
     }
 
-    class ViewHolder extends RecyclerView.ViewHolder{
+    class ViewHolder extends RecyclerView.ViewHolder {
+        CircleImageView image;
+        TextView name;
+        ConstraintLayout layout;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+            image = itemView.findViewById(R.id.contact_profile);
+            name = itemView.findViewById(R.id.contact_name);
+            layout = itemView.findViewById(R.id.item);
+            layout.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (getAdapterPosition()!=RecyclerView.NO_POSITION&& listener!=null)
+                        listener.onClick(contact_profiles.get(getAdapterPosition()).getContact());
+
+                }
+            });
+
         }
     }
+
+    public interface OnItemClickListener {
+        void onClick(DataBase.Contact contact);
+    }
+
+    public void setOnClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
+
 }

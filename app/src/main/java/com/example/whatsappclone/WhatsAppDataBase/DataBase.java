@@ -242,9 +242,10 @@ public class DataBase extends SQLiteOpenHelper {
                     , null
                     , null
                     , null);
+            ProfileCursor.moveToFirst();
             //store the values
             ProfileImage profileImage = new ProfileImage(ProfileCursor.getString(ProfileCursor.getColumnIndex(Profiles_Status.IMAGE_PATH))
-                    , ProfileCursor.getString(ProfileCursor.getColumnIndex(Profiles_Status.IMAGE_PATH)));
+                    , ProfileCursor.getString(ProfileCursor.getColumnIndex(Profiles_Status.IMAGE_URL)));
             Contact contact = new Contact(cursor.getString(cursor.getColumnIndex(Contacts.UID))
                     , cursor.getString(cursor.getColumnIndex(Contacts.PHONE_NUMBER))
                     , cursor.getString(cursor.getColumnIndex(Contacts.CONTACT_NAME)));
