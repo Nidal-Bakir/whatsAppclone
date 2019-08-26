@@ -12,10 +12,31 @@
             android:id="@+id/contactToolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize">
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="sdadsad"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center_vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:shadowColor="#FFFFFFFF"
+                    android:text="Select Contact"
+                    android:textSize="20sp"
+                    android:textColor="#FFFFFFFF" />
+
+                <TextView
+
+                    android:layout_height="wrap_content"
+                    android:layout_width="wrap_content"
+                    android:text="4 contacts"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="15sp"
+                    />
+            </LinearLayout>
+
+
+
         </androidx.appcompat.widget.Toolbar>
     </com.google.android.material.appbar.AppBarLayout>
 

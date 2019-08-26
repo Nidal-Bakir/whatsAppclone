@@ -33,6 +33,9 @@ public class ContactsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_contacts);
         Toolbar toolbar = findViewById(R.id.contactToolbar);
         setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_arrow_back_);
         setTitle(null);
         //get country code
         TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
