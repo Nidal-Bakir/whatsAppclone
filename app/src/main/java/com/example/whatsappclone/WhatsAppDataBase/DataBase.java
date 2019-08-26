@@ -176,26 +176,31 @@ public class DataBase extends SQLiteOpenHelper {
     public void upDateProfileImage(String UID, ProfileImage profileImage) {
         database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
-        contentValues.put(Profiles_Status.IMAGE_PATH, profileImage.getImagePath());
-        contentValues.put(Profiles_Status.IMAGE_URL, profileImage.getImageUrl());
+        if (profileImage != null) {
+            contentValues.put(Profiles_Status.IMAGE_PATH, profileImage.getImagePath());
+            contentValues.put(Profiles_Status.IMAGE_URL, profileImage.getImageUrl());
+            database.update(
+                    Profiles_Status.TABLE_NAME
+                    , contentValues
+                    , Profiles_Status.UID + " = ?"
+                    , new String[]{UID});
+        }
 
-        database.update(
-                Profiles_Status.TABLE_NAME
-                , contentValues
-                , Profiles_Status.UID + " = ?"
-                , new String[]{UID});
     }
 
     public void upDateSatusImage(String UID, Status status) {
         database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
-        contentValues.put(Profiles_Status.STATUS_PATH, status.getStatusPath());
-        contentValues.put(Profiles_Status.STATUS_URL, status.getStatusUrl());
-        database.update(
-                Profiles_Status.TABLE_NAME
-                , contentValues
-                , Profiles_Status.UID + "= ?"
-                , new String[]{UID});
+        if (status != null) {
+            contentValues.put(Profiles_Status.STATUS_PATH, status.getStatusPath());
+            contentValues.put(Profiles_Status.STATUS_URL, status.getStatusUrl());
+            database.update(
+                    Profiles_Status.TABLE_NAME
+                    , contentValues
+                    , Profiles_Status.UID + "= ?"
+                    , new String[]{UID});
+        }
+
 
 
     }

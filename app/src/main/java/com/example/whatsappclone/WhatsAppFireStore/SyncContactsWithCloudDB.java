@@ -31,6 +31,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
     private Context context;
     private String countryCode;
     List<DataBase.Contact> contacts;
+    OnSyncFinish onSyncFinish;
     //i.g US this will use with libphonenumber lib
     // to handle the numbers whose  doesn't have area code i.g(+1)
 
@@ -45,9 +46,8 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
 
     }
 
-
     @Override
-    protected void onPreExecute() {
+    protected Void doInBackground(Boolean... booleans) {
         //read the contacts from phone
         contacts = getContactsFromUserPhone();
         //filter the contacts (get Valid contacts) and add area code
@@ -58,12 +58,6 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                 e.printStackTrace();
             }
         }
-
-    }
-
-
-    @Override
-    protected Void doInBackground(Boolean... booleans) {
         DataBase dataBase = new DataBase(context);
 
         if (booleans[0]) {
@@ -80,7 +74,11 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
         }
         return null;
     }
-
+    @Override
+    protected void onPostExecute(Void aVoid) {
+       onSyncFinish.onFinish();
+        Log.d(TAG, "onFinish:********************************* ");
+    }
     private void syncContacts(List<DataBase.Contact> contacts) {
         final DataBase dataBase = new DataBase(context);
         for (DataBase.Contact contact : contacts) {
@@ -173,7 +171,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                                 profile.getProfileImage()
                                 , profile.getStatus());
                         //add the profile image and status to the profile_status table
-                            //if the data exist just upDate the data
+                        //if the data exist just upDate the data
                         if (dataBase.getUserProfileAndStatus(profile.getUid()) == null)
                             dataBase.insetUserProfileAndStatus(profile.getUid()
                                     , profile.getPhoneNumber()
@@ -190,4 +188,11 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
 
         }
     }
+    public void setOnSyncFinish(OnSyncFinish onSyncFinish){
+        this.onSyncFinish=onSyncFinish;
+    }
+    public interface OnSyncFinish{
+        void onFinish();
+    }
 }
+

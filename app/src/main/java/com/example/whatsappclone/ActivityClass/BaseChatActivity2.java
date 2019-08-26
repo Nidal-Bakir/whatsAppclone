@@ -5,35 +5,25 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
 import android.telephony.TelephonyManager;
-import android.util.Log;
 import android.view.View;
-
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.appcompat.app.ActionBarDrawerToggle;
-
 import android.view.MenuItem;
-
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
-
 import androidx.drawerlayout.widget.DrawerLayout;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-
 import android.view.Menu;
 import android.widget.Toast;
-
 import com.facebook.stetho.Stetho;
 
 public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -129,6 +119,12 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             //sync the contacts
             SyncContactsWithCloudDB contactsWithClouldDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
             contactsWithClouldDB.execute(false);
+            contactsWithClouldDB.setOnSyncFinish(new SyncContactsWithCloudDB.OnSyncFinish() {
+                @Override
+                public void onFinish() {
+
+                }
+            });
             Toolbar toolbar = findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
             setTitle("WhatsApp");
