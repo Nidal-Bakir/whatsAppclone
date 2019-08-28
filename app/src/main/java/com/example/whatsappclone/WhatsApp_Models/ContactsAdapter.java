@@ -24,9 +24,13 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ViewHo
     private Context context;
     private OnItemClickListener listener;
 
-    public ContactsAdapter(List<DataBase.Contact_Profile> contact_profiles, Context context) {
+    public ContactsAdapter( Context context,List<DataBase.Contact_Profile> contact_profiles) {
         this.contact_profiles = contact_profiles;
         this.context = context;
+    }
+
+    public void setContact_profiles(List<DataBase.Contact_Profile> contact_profiles) {
+        this.contact_profiles = contact_profiles;
     }
 
     @NonNull

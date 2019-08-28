@@ -5,7 +5,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.os.AsyncTask;
 import android.provider.ContactsContract;
-import android.util.Log;
 
 
 import androidx.annotation.NonNull;
@@ -30,8 +29,10 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
     private static final String TAG = "SyncContactsWithCloudDB";
     private Context context;
     private String countryCode;
-    List<DataBase.Contact> contacts;
-    OnSyncFinish onSyncFinish;
+    private List<DataBase.Contact> contacts;
+    private OnSyncFinish onSyncFinish;
+    private List<DataBase.Contact_Profile> contact_profiles=null;
+    private boolean force_sync;
     //i.g US this will use with libphonenumber lib
     // to handle the numbers whose  doesn't have area code i.g(+1)
 
@@ -48,6 +49,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
 
     @Override
     protected Void doInBackground(Boolean... booleans) {
+        force_sync=booleans[0];
         //read the contacts from phone
         contacts = getContactsFromUserPhone();
         //filter the contacts (get Valid contacts) and add area code
@@ -65,6 +67,8 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
             //and add the new contacts to data base if there is any **
             // and Check the compatibility between contacts names in Db and user contacts names
             force_syncContacts(contacts);
+            //for notify the adapter
+            contact_profiles=dataBase.getAllContact();
         } else {
             //if the Contacts_Table is Empty the contacts will sync
             // and Check the compatibility between contacts names in Db and user contacts names
@@ -72,12 +76,13 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                 force_syncContacts(contacts);
             } else syncContacts(contacts);
         }
+
         return null;
     }
     @Override
     protected void onPostExecute(Void aVoid) {
-       onSyncFinish.onFinish();
-        Log.d(TAG, "onFinish:********************************* ");
+        if (force_sync)
+       onSyncFinish.onFinish(contact_profiles);
     }
     private void syncContacts(List<DataBase.Contact> contacts) {
         final DataBase dataBase = new DataBase(context);
@@ -111,7 +116,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                     if (pCur.moveToFirst()) {
                         String phoneNumber = pCur.getString(pCur.getColumnIndex(
                                 ContactsContract.CommonDataKinds.Phone.NUMBER));
-                        ArrayOfContacts.add(new DataBase.Contact(null, phoneNumber, name));
+                        ArrayOfContacts.add(new DataBase.Contact(null, phoneNumber, name,null));
                     }
 
                     pCur.close();
@@ -137,7 +142,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
             String newNumber = numberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.E164);
             if (numberUtil.isPossibleNumber(phoneNumber))
                 if (numberUtil.isValidNumber(phoneNumber)) {
-                    contacts1.add(new DataBase.Contact(null, newNumber, contact.getContact_name()));
+                    contacts1.add(new DataBase.Contact(null, newNumber, contact.getContact_name(),null));
                 }
 
         }
@@ -161,24 +166,27 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                     for (QueryDocumentSnapshot snapshot : taskResult) {
                         UserProfile profile = snapshot.toObject(UserProfile.class);
                         contact.setUID(profile.getUid());
+                        contact.setOnline_status(profile.getOnLineStatus());
                         //add the contact to contacts table
                         //if the data exist just upDate the data
                         if (dataBase.getContact(profile.getUid(), null) == null)
                             dataBase.addContact(contact);
-                        else //update
+                        else {//update
                             dataBase.updateContact(contact.getContact_name(), profile.getUid(), null);
+                            dataBase.upDateOnlineStatusForUser(profile.getUid(),null,profile.getOnLineStatus());
+                        }
                         Profile_Status_img profile_status = new Profile_Status_img(
                                 profile.getProfileImage()
                                 , profile.getStatus());
-                        //add the profile image and status to the profile_status table
+                        //add the profile image to the profile table and status image to status table
                         //if the data exist just upDate the data
-                        if (dataBase.getUserProfileAndStatus(profile.getUid()) == null)
+                        if (dataBase.getUserProfile(profile.getUid()) == null)
                             dataBase.insetUserProfileAndStatus(profile.getUid()
                                     , profile.getPhoneNumber()
                                     , profile_status);
                         else {//update
                             dataBase.upDateProfileImage(profile.getUid(), profile.getProfileImage());
-                            dataBase.upDateSatusImage(profile.getUid(), profile.getStatus());
+                            dataBase.upDateStatusImage(profile.getUid(), profile.getStatus());
                         }
                     }
                 }
@@ -192,7 +200,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
         this.onSyncFinish=onSyncFinish;
     }
     public interface OnSyncFinish{
-        void onFinish();
+        void onFinish(List<DataBase.Contact_Profile> contact_profiles);
     }
 }
 

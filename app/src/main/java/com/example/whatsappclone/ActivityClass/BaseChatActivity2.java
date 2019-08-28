@@ -26,6 +26,8 @@ import android.view.Menu;
 import android.widget.Toast;
 import com.facebook.stetho.Stetho;
 
+import java.util.List;
+
 public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "BaseChatActivity2";
     private FirebaseAuth auth = FirebaseAuth.getInstance();
@@ -119,12 +121,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             //sync the contacts
             SyncContactsWithCloudDB contactsWithClouldDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
             contactsWithClouldDB.execute(false);
-            contactsWithClouldDB.setOnSyncFinish(new SyncContactsWithCloudDB.OnSyncFinish() {
-                @Override
-                public void onFinish() {
 
-                }
-            });
             Toolbar toolbar = findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
             setTitle("WhatsApp");

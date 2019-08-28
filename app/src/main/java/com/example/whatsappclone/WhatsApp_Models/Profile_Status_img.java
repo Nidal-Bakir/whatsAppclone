@@ -25,6 +25,10 @@ public class Profile_Status_img {
         return status.getStatusUrl();
     }
 
+    public String getStatusDate() {
+        return status.getDate();
+    }
+
     public ProfileImage getProfileImage() {
         return profileImage;
     }
