@@ -10,12 +10,19 @@ import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
 import com.example.whatsappclone.WhatsApp_Models.ContactsAdapter;
 
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,6 +33,8 @@ public class ContactsActivity extends AppCompatActivity {
     ContactsAdapter adapter;
     List<DataBase.Contact_Profile> contact_profiles;
     DataBase dataBase;
+    ProgressBar progressBar;
+     TextView contacts_count;
     SyncContactsWithCloudDB syncContactsWithCloudDB = null;
     private static final String TAG = "ContactsActivity";
     String countryCode;
@@ -40,25 +49,17 @@ public class ContactsActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayShowHomeEnabled(true);
         getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_arrow_back_);
         setTitle(null);
-        final TextView contacts_count = findViewById(R.id.contacts_count);
+        contacts_count= findViewById(R.id.contacts_count);
+        progressBar=findViewById(R.id.progressBar);
+        /* change progress Bar color  */
+        Drawable drawable=progressBar.getIndeterminateDrawable().mutate();
+        drawable.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
+        progressBar.setProgressDrawable(drawable);
         //get country code
         TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
         countryCode = tm.getSimCountryIso();
-        //you can not sync if there is no internet
-        if (InternetCheck.isOnline()) {
-            syncContactsWithCloudDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
-            syncContactsWithCloudDB.execute(true);
-            syncContactsWithCloudDB.setOnSyncFinish(new SyncContactsWithCloudDB.OnSyncFinish() {
-                @Override
-                public void onFinish(List<DataBase.Contact_Profile> contact_profiles) {
-                    adapter.setContact_profiles(contact_profiles);
-                    adapter.notifyDataSetChanged();
-                    //set the number of contacts
-                    contacts_count.setText(String.valueOf(contact_profiles.size()) + " contacts");
-                }
-            });
-
-        }
+        //sync the contacts
+        sync();
         //connect to data base
         dataBase = new DataBase(this);
         contact_profiles = dataBase.getAllContact();
@@ -83,6 +84,25 @@ public class ContactsActivity extends AppCompatActivity {
 
     }
 
+    private void sync(){
+        //you can not sync if there is no internet
+        if (InternetCheck.isOnline()) {
+            syncContactsWithCloudDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
+            syncContactsWithCloudDB.execute(true);
+            syncContactsWithCloudDB.setOnSyncFinish(new SyncContactsWithCloudDB.OnSyncFinish() {
+                @Override
+                public void onFinish(List<DataBase.Contact_Profile> contact_profiles) {
+                    adapter.setContact_profiles(contact_profiles);
+                    adapter.notifyDataSetChanged();
+                    //set the number of contacts
+                    contacts_count.setText(String.valueOf(contact_profiles.size()) + " contacts");
+                    progressBar.setVisibility(View.GONE);
+                }
+            });
+
+        }
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.contats_menu, menu);
@@ -101,9 +121,13 @@ public class ContactsActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.refresh:
                 if (syncContactsWithCloudDB != null) {
-                    syncContactsWithCloudDB.cancel(true);
-                    syncContactsWithCloudDB.execute(true);
+                   syncContactsWithCloudDB.cancel(true);
+                   sync();
+                   progressBar.setVisibility(View.VISIBLE);
                 }
+                break;
+            case R.id.openPhoneContacts:
+              startActivity(new Intent(Intent.ACTION_DEFAULT, ContactsContract.Contacts.CONTENT_URI));
                 break;
         }
 

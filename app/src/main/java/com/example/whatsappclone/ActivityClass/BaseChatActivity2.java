@@ -26,8 +26,6 @@ import android.view.Menu;
 import android.widget.Toast;
 import com.facebook.stetho.Stetho;
 
-import java.util.List;
-
 public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "BaseChatActivity2";
     private FirebaseAuth auth = FirebaseAuth.getInstance();
@@ -37,6 +35,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private static final int WRITE_CONTACTS_REQUEST_CODE = 29;
     private static final int READ_EXTERNAL_STORAGE_REQUEST_CODE = 13;
     private static final int WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 481;
+    private static final int SEND_SMS_REQUEST_CODE = 124;
 
 
     @Override
@@ -95,6 +94,15 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 } else {
                     // permission denied
                     Toast.makeText(this, "Permission denied to write on your External storage", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case SEND_SMS_REQUEST_CODE:
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted
+                } else {
+                    // permission denied
+                    Toast.makeText(this, "Permission denied to send SMS", Toast.LENGTH_SHORT).show();
                 }
                 break;
         }
@@ -190,6 +198,12 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                     Toast.makeText(this, " the app need this permission to send images!", Toast.LENGTH_SHORT).show();
                 else
                     ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST_CODE);
+            if (ContextCompat.checkSelfPermission(this
+                    , Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED)
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.SEND_SMS))
+                    Toast.makeText(this, " the app need this permission to send SMS!", Toast.LENGTH_SHORT).show();
+                else
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, SEND_SMS_REQUEST_CODE);
 
 
         }
