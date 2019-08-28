@@ -44,6 +44,7 @@ dependencies {
     //CircleImageView
     implementation 'de.hdodenhof:circleimageview:3.0.0'
     implementation 'com.google.android.material:material:1.0.0'
+
     // stetho for database Debug
     implementation 'com.facebook.stetho:stetho:1.5.1'
     implementation 'com.facebook.stetho:stetho-js-rhino:1.5.1'

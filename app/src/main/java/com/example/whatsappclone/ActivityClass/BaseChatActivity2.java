@@ -5,26 +5,41 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
+import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import android.telephony.TelephonyManager;
 import android.view.View;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+
 import android.view.MenuItem;
+
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
+
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+
 import android.view.Menu;
+import android.widget.TextView;
 import android.widget.Toast;
+
 import com.facebook.stetho.Stetho;
+import com.google.i18n.phonenumbers.NumberParseException;
+import com.google.i18n.phonenumbers.PhoneNumberUtil;
+import com.google.i18n.phonenumbers.Phonenumber;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "BaseChatActivity2";
@@ -36,6 +51,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private static final int READ_EXTERNAL_STORAGE_REQUEST_CODE = 13;
     private static final int WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 481;
     private static final int SEND_SMS_REQUEST_CODE = 124;
+    private TextView profilePhoneNumber;
 
 
     @Override
@@ -138,7 +154,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    startActivity(new Intent(BaseChatActivity2.this,ContactsActivity.class));
+                    startActivity(new Intent(BaseChatActivity2.this, ContactsActivity.class));
                 }
             });
             DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -148,6 +164,26 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             drawer.addDrawerListener(toggle);
             toggle.syncState();
             navigationView.setNavigationItemSelectedListener(this);
+            View nav = navigationView.getHeaderView(0);
+            profilePhoneNumber = nav.findViewById(R.id.profile_phone_number);
+
+            try {// set phone number to the text view in nav_bar
+                PhoneNumberUtil phoneNumberUtil=PhoneNumberUtil.getInstance();
+                Phonenumber.PhoneNumber myNumber=phoneNumberUtil.parse(UserSettings.PHONENUMBER,countryCode.toUpperCase());
+                profilePhoneNumber.setText(phoneNumberUtil.format(myNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL));
+            } catch (NumberParseException e) {
+                e.printStackTrace();
+                profilePhoneNumber.setText(UserSettings.PHONENUMBER);
+            }
+            CircleImageView profileImage=nav.findViewById(R.id.profile_Image);
+            profileImage.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    //TODO : select image from studio or gallery
+                    Toast.makeText(BaseChatActivity2.this, "select image ", Toast.LENGTH_SHORT).show();
+                }
+            });
+
 
 
         }
@@ -263,7 +299,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         if (id == R.id.nav_newGroup) {
             //ToDO:handel the new group action
         } else if (id == R.id.nav_contacts) {
-
+            startActivity(new Intent(BaseChatActivity2.this, ContactsActivity.class));
         } else if (id == R.id.nav_settings) {
 
         } else if (id == R.id.nav_share) {

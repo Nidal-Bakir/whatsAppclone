@@ -1,5 +1,6 @@
 package com.example.whatsappclone.ActivityClass;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -10,13 +11,16 @@ import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
 import com.example.whatsappclone.WhatsApp_Models.ContactsAdapter;
 
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.os.AsyncTask;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
+import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Menu;
@@ -34,10 +38,28 @@ public class ContactsActivity extends AppCompatActivity {
     List<DataBase.Contact_Profile> contact_profiles;
     DataBase dataBase;
     ProgressBar progressBar;
-     TextView contacts_count;
+    TextView contacts_count;
     SyncContactsWithCloudDB syncContactsWithCloudDB = null;
     private static final String TAG = "ContactsActivity";
     String countryCode;
+    private static final int INVITE_FRIEND_CODE = 558;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (resultCode == RESULT_OK && requestCode == INVITE_FRIEND_CODE) {
+            Uri uri = data.getData();
+            Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+            if (cursor.moveToFirst()) {
+                Intent smsIntent = new Intent(Intent.ACTION_VIEW);
+                smsIntent.setData(Uri.parse("smsto:"));
+                smsIntent.setType("vnd.android-dir/mms-sms");
+                smsIntent.putExtra("address"  , cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)));
+                smsIntent.putExtra("sms_body"  , "Test ");
+                startActivity(smsIntent);
+            }
+        }
+
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,10 +71,10 @@ public class ContactsActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayShowHomeEnabled(true);
         getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_arrow_back_);
         setTitle(null);
-        contacts_count= findViewById(R.id.contacts_count);
-        progressBar=findViewById(R.id.progressBar);
+        contacts_count = findViewById(R.id.contacts_count);
+        progressBar = findViewById(R.id.progressBar);
         /* change progress Bar color  */
-        Drawable drawable=progressBar.getIndeterminateDrawable().mutate();
+        Drawable drawable = progressBar.getIndeterminateDrawable().mutate();
         drawable.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
         progressBar.setProgressDrawable(drawable);
         //get country code
@@ -84,7 +106,7 @@ public class ContactsActivity extends AppCompatActivity {
 
     }
 
-    private void sync(){
+    private void sync() {
         //you can not sync if there is no internet
         if (InternetCheck.isOnline()) {
             syncContactsWithCloudDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
@@ -121,13 +143,19 @@ public class ContactsActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.refresh:
                 if (syncContactsWithCloudDB != null) {
-                   syncContactsWithCloudDB.cancel(true);
-                   sync();
-                   progressBar.setVisibility(View.VISIBLE);
+                    syncContactsWithCloudDB.cancel(true);
+                    sync();
+                    progressBar.setVisibility(View.VISIBLE);
                 }
                 break;
             case R.id.openPhoneContacts:
-              startActivity(new Intent(Intent.ACTION_DEFAULT, ContactsContract.Contacts.CONTENT_URI));
+                startActivity(new Intent(Intent.ACTION_DEFAULT, ContactsContract.Contacts.CONTENT_URI));
+                break;
+            case R.id.invite_friend:
+
+               Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+                intent.setType(ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE);
+                startActivityForResult(intent,INVITE_FRIEND_CODE);
                 break;
         }
 
