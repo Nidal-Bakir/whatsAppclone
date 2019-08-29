@@ -3,19 +3,24 @@ package com.example.whatsappclone.ActivityClass;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
+import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import android.telephony.TelephonyManager;
 import android.view.View;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
@@ -35,9 +40,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.stetho.Stetho;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -51,7 +62,11 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private static final int READ_EXTERNAL_STORAGE_REQUEST_CODE = 13;
     private static final int WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 481;
     private static final int SEND_SMS_REQUEST_CODE = 124;
+    private static final int IMAGE_CHOOSER_REQUEST_CODE = 476;
     private TextView profilePhoneNumber;
+    private CircleImageView profileImage;
+    FirebaseFirestore firestore=FirebaseFirestore.getInstance();
+    FirebaseStorage firebaseStorage=FirebaseStorage.getInstance();
 
 
     @Override
@@ -125,6 +140,21 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+       switch (requestCode){
+           case IMAGE_CHOOSER_REQUEST_CODE:
+               if (resultCode==RESULT_OK){
+                   if (data==null)
+                       return;
+
+
+
+               }
+               break;
+       }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base_chat2);
@@ -175,12 +205,21 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 e.printStackTrace();
                 profilePhoneNumber.setText(UserSettings.PHONENUMBER);
             }
-            CircleImageView profileImage=nav.findViewById(R.id.profile_Image);
+
+             profileImage=nav.findViewById(R.id.profile_Image);
+
+             Glide.with(this)
+                     .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
+                     .error(R.drawable.ic_default_avatar_profile)
+                     .into(profileImage);
             profileImage.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    //TODO : select image from studio or gallery
-                    Toast.makeText(BaseChatActivity2.this, "select image ", Toast.LENGTH_SHORT).show();
+                    Intent intent=new Intent();
+                    intent.setType("image/*");
+                    intent.setAction(Intent.ACTION_GET_CONTENT);
+                    startActivityForResult(Intent.createChooser(intent,"select avatar"),IMAGE_CHOOSER_REQUEST_CODE);
+
                 }
             });
 
