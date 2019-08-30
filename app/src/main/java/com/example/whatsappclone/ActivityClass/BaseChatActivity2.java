@@ -3,6 +3,9 @@ package com.example.whatsappclone.ActivityClass;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,11 +15,13 @@ import com.bumptech.glide.request.RequestOptions;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
+import com.example.whatsappclone.WhatsAppFireStore.UploadMedia;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -29,6 +34,7 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import android.view.MenuItem;
 
 import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -36,6 +42,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.view.Menu;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,6 +56,9 @@ import com.google.i18n.phonenumbers.Phonenumber;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -65,8 +75,9 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private static final int IMAGE_CHOOSER_REQUEST_CODE = 476;
     private TextView profilePhoneNumber;
     private CircleImageView profileImage;
-    FirebaseFirestore firestore=FirebaseFirestore.getInstance();
-    FirebaseStorage firebaseStorage=FirebaseStorage.getInstance();
+    private UploadMedia uploadMedia;
+    private DataBase dataBase;
+    private ProgressBar profileProgressBar;
 
 
     @Override
@@ -140,24 +151,61 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-       switch (requestCode){
-           case IMAGE_CHOOSER_REQUEST_CODE:
-               if (resultCode==RESULT_OK){
-                   if (data==null)
-                       return;
-
-
-
-               }
-               break;
-       }
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable final Intent data) {
+        switch (requestCode) {
+            case IMAGE_CHOOSER_REQUEST_CODE:
+                if (resultCode == RESULT_OK) {
+                    profileProgressBar.setVisibility(View.VISIBLE);
+                    if (data == null) {
+                        profileProgressBar.setVisibility(View.GONE);
+                        return;
+                    }
+                    //check if the user connect to the internet
+                    InternetCheck internetCheck = new InternetCheck();
+                    internetCheck.execute();
+                    // this method will called when the check Completed because the check can not run
+                    // on UI THREAD
+                    internetCheck.onComplete(new InternetCheck.OnCheckComplete() {
+                        @Override
+                        public void onCheckComplete(boolean isOnline) {
+                            if (isOnline) {
+                                uploadMedia.uploadProfileImage(data.getData());
+                                uploadMedia.OnComplete(new UploadMedia.OnUploadCompleteListener() {
+                                    @Override
+                                    public void onUploadCompleteListener(String uri) {
+                                        profileProgressBar.setVisibility(View.GONE);
+                                        Glide.with(getApplicationContext())
+                                                .load(uri)
+                                                .error(R.drawable.ic_default_avatar_profile)//set the default image if the user delete the profile image or something  went wrong
+                                                .into(profileImage);
+                                    }
+                                });
+                            } else {
+                                profileProgressBar.setVisibility(View.GONE);
+                                //show an SnackBar to tell the user what want wrong
+                                View view = findViewById(R.id.chat_floating_bt);
+                                final Snackbar snackbar = Snackbar.make(view, "no internet connection!", Snackbar.LENGTH_LONG);
+                                snackbar.setAction("close", new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        snackbar.dismiss();
+                                    }
+                                });
+                                snackbar.show();
+                            }
+                        }
+                    });
+                }
+                break;
+        }
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base_chat2);
+        // inti class for upload media images and videos
+        uploadMedia = new UploadMedia(this);
         //i.g US this will use with libphonenumber lib
         // to handle the numbers whose  doesn't have area code i.g(+1)
         TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
@@ -171,7 +219,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             // for DataBase Debug
             Stetho.initializeWithDefaults(this);
             //connect to DataBase
-            DataBase dataBase = new DataBase(this);
+            dataBase = new DataBase(this);
             //sync the contacts
             SyncContactsWithCloudDB contactsWithClouldDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
             contactsWithClouldDB.execute(false);
@@ -198,31 +246,35 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             profilePhoneNumber = nav.findViewById(R.id.profile_phone_number);
 
             try {// set phone number to the text view in nav_bar
-                PhoneNumberUtil phoneNumberUtil=PhoneNumberUtil.getInstance();
-                Phonenumber.PhoneNumber myNumber=phoneNumberUtil.parse(UserSettings.PHONENUMBER,countryCode.toUpperCase());
+                PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
+                Phonenumber.PhoneNumber myNumber = phoneNumberUtil.parse(UserSettings.PHONENUMBER, countryCode.toUpperCase());
                 profilePhoneNumber.setText(phoneNumberUtil.format(myNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL));
             } catch (NumberParseException e) {
                 e.printStackTrace();
                 profilePhoneNumber.setText(UserSettings.PHONENUMBER);
             }
-
-             profileImage=nav.findViewById(R.id.profile_Image);
-
-             Glide.with(this)
-                     .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
-                     .error(R.drawable.ic_default_avatar_profile)
-                     .into(profileImage);
+            profileProgressBar=nav.findViewById(R.id.profileImageProgressBar);
+            /* change progress Bar color  */
+            Drawable drawable = profileProgressBar.getIndeterminateDrawable().mutate();
+            drawable.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
+            profileProgressBar.setProgressDrawable(drawable);
+            profileImage = nav.findViewById(R.id.profile_Image);
+            //set the profile image from DB
+            Glide.with(this)
+                    .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
+                    .error(R.drawable.ic_default_avatar_profile)//set the default image if the user delete the profile image or something  went wrong
+                    .into(profileImage);
+            //choose image profile
             profileImage.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    Intent intent=new Intent();
+                    Intent intent = new Intent();
                     intent.setType("image/*");
                     intent.setAction(Intent.ACTION_GET_CONTENT);
-                    startActivityForResult(Intent.createChooser(intent,"select avatar"),IMAGE_CHOOSER_REQUEST_CODE);
+                    startActivityForResult(Intent.createChooser(intent, "select avatar"), IMAGE_CHOOSER_REQUEST_CODE);
 
                 }
             });
-
 
 
         }
