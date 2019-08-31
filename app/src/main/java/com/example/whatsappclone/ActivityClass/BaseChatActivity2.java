@@ -40,6 +40,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.view.Menu;
 import android.widget.ProgressBar;
@@ -78,6 +80,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private UploadMedia uploadMedia;
     private DataBase dataBase;
     private ProgressBar profileProgressBar;
+    private RecyclerView statusRecyclerView;
 
 
     @Override
@@ -173,6 +176,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                                 uploadMedia.OnComplete(new UploadMedia.OnUploadCompleteListener() {
                                     @Override
                                     public void onUploadCompleteListener(String uri) {
+                                        //hide the progressBar
                                         profileProgressBar.setVisibility(View.GONE);
                                         Glide.with(getApplicationContext())
                                                 .load(uri)
@@ -253,7 +257,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 e.printStackTrace();
                 profilePhoneNumber.setText(UserSettings.PHONENUMBER);
             }
-            profileProgressBar=nav.findViewById(R.id.profileImageProgressBar);
+            profileProgressBar = nav.findViewById(R.id.profileImageProgressBar);
             /* change progress Bar color  */
             Drawable drawable = profileProgressBar.getIndeterminateDrawable().mutate();
             drawable.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
@@ -275,9 +279,10 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
                 }
             });
-
-
         }
+        statusRecyclerView =findViewById(R.id.StatusRecyclerView);
+        statusRecyclerView.setLayoutManager(new LinearLayoutManager(this,LinearLayoutManager.HORIZONTAL,false));
+
     }
 
 
