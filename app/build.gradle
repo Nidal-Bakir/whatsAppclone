@@ -5,7 +5,6 @@ android {
     compileSdkVersion 28
     defaultConfig {
         multiDexEnabled true
-
         applicationId "com.example.whatsappclone"
         minSdkVersion 19
         targetSdkVersion 28
@@ -53,5 +52,6 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
     implementation 'com.googlecode.libphonenumber:libphonenumber:8.10.17'
+    implementation 'com.github.siyamed:android-shape-imageview:0.9.3'
 
 }

@@ -6,18 +6,17 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.RequestOptions;
+import com.example.whatsappclone.Adapters.StatusAdapter;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
 import com.example.whatsappclone.WhatsAppFireStore.UploadMedia;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
-import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
+import com.example.whatsappclone.WhatsApp_Models.Status;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import android.telephony.TelephonyManager;
@@ -49,7 +48,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.stetho.Stetho;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentChange;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
@@ -61,6 +66,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -81,6 +87,10 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private DataBase dataBase;
     private ProgressBar profileProgressBar;
     private RecyclerView statusRecyclerView;
+    private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+    // for attach listener on status collection
+    private CollectionReference statusCollectionRef =
+            firestore.collection("profile").document(UserSettings.PHONENUMBER).collection("status");
 
 
     @Override
@@ -280,8 +290,74 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 }
             });
         }
-        statusRecyclerView =findViewById(R.id.StatusRecyclerView);
-        statusRecyclerView.setLayoutManager(new LinearLayoutManager(this,LinearLayoutManager.HORIZONTAL,false));
+        // status init
+        List<Status> statusList = dataBase.getAllStatus(); //get all status from DataBase
+        statusRecyclerView = findViewById(R.id.StatusRecyclerView);
+        statusRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        final StatusAdapter statusAdapter = new StatusAdapter(this, statusList);
+        statusRecyclerView.setAdapter(statusAdapter);
+        // when user click add status item
+        statusAdapter.onAddStatus(new StatusAdapter.OnAddStatusListener() {
+            @Override
+            public void onAddStatusListener() {
+                //TODo: open the chooser and upload the image
+                Toast.makeText(BaseChatActivity2.this, "add status", Toast.LENGTH_SHORT).show();
+            }
+        });
+        // when user click on normal status item
+        statusAdapter.onStatusClick(new StatusAdapter.OnStatusItemClickListener() {
+            @Override
+            public void onStatusItemClickListener(String url) {
+                //TODO ::open the image in new activity or fragment !!!
+                Toast.makeText(BaseChatActivity2.this, "normal item", Toast.LENGTH_SHORT).show();
+            }
+        });
+        //start listening for changing on status collection
+        statusCollectionRef.addSnapshotListener(this, new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@javax.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @javax.annotation.Nullable FirebaseFirestoreException e) {
+                if (e != null) {
+                    Log.w(TAG, "Listen failed.", e);
+                    return;
+                }
+                String phone_number;//it is the same of (get collection id)
+                Status status;
+                for (DocumentChange documentChange:queryDocumentSnapshots.getDocumentChanges()){
+                    switch (documentChange.getType()){
+                        case ADDED:
+                             phone_number=documentChange.getDocument().getId();
+                             status=documentChange.getDocument().toObject(Status.class);
+                            status.setPhone_number(phone_number);
+                            // check the number
+                            if (dataBase.isNumberAFriend(phone_number)){
+                            statusAdapter.addStatusTolist(status);
+                            dataBase.upDateStatusImage(null,phone_number,status);
+                            }
+                            break;
+                        case REMOVED:
+                             phone_number=documentChange.getDocument().getId();
+                             if (dataBase.isNumberAFriend(phone_number)){
+                                 statusAdapter.removeStatusFromList(phone_number);
+                                 dataBase.upDateStatusImage(null,phone_number,new Status("","",""));
+                             }
+                            break;
+                        case MODIFIED:
+                            phone_number=documentChange.getDocument().getId();
+                            if (dataBase.isNumberAFriend(phone_number)){
+                                status=documentChange.getDocument().toObject(Status.class);
+                                status.setPhone_number(phone_number);
+                                dataBase.upDateStatusImage(null,phone_number,status);
+                                statusAdapter.removeStatusFromList(phone_number);
+                                statusAdapter.addStatusTolist(status);
+                            }
+                            break;
+                    }
+                }
+
+
+            }
+        });
+
 
     }
 
@@ -350,6 +426,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             finish();
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
         }
+
 
     }
 

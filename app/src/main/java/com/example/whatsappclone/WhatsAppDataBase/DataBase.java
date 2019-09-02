@@ -6,23 +6,29 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.database.sqlite.SQLiteQueryBuilder;
 import android.provider.BaseColumns;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
 import com.example.whatsappclone.WhatsApp_Models.Status;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class DataBase extends SQLiteOpenHelper {
     private static final String TAG = "DataBase";
     private static final int EMPTYCURSOR = 0;
     private static final String DB_NAME = "whatsApp_DB";
+    private static final long MILLI_SECOND_DAY = 86400000;
+    private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+    private CollectionReference statusCollectionRef =
+            firestore.collection("profile").document(UserSettings.PHONENUMBER).collection("status");
     private SQLiteDatabase database;
 
     /* Inner class that defines the Profiles table contents  */
@@ -43,8 +49,8 @@ public class DataBase extends SQLiteOpenHelper {
                     + Profiles.IMAGE_URL + " TEXT "
                     + ")";
 
-    /* Inner class that defines the Status table contents  */
-    private class Status implements BaseColumns {
+    /* Inner class that defines the TableStatus table contents  */
+    private class TableStatus implements BaseColumns {
         private static final String TABLE_NAME = "Status";
         private static final String UID = "uid";
         private static final String PHONE_NUMBER = "phone_number";
@@ -54,13 +60,13 @@ public class DataBase extends SQLiteOpenHelper {
     }
 
     private static final String SQL_CREATE_STATUS_IMG =
-            "CREATE TABLE " + Status.TABLE_NAME
+            "CREATE TABLE " + TableStatus.TABLE_NAME
                     + " ("
-                    + Status.UID + " TEXT,"
-                    + Status.PHONE_NUMBER + " TEXT ,"
-                    + Status.STATUS_PATH + " TEXT,"
-                    + Status.STATUS_URL + " TEXT ,"
-                    + Status.DATE + " TEXT"
+                    + TableStatus.UID + " TEXT,"
+                    + TableStatus.PHONE_NUMBER + " TEXT ,"
+                    + TableStatus.STATUS_PATH + " TEXT,"
+                    + TableStatus.STATUS_URL + " TEXT ,"
+                    + TableStatus.DATE + " TEXT"
                     + ")";
 
     /* Inner class that defines the Contacts table contents  */
@@ -149,6 +155,11 @@ public class DataBase extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_PROFILES_IMG);
         db.execSQL(SQL_CREATE_STATUS_IMG);
         db.execSQL(SQL_CREATE_CONTACTS_TABLE);
+        //add user info to database the def info
+        addContact(new Contact(UserSettings.UID, UserSettings.PHONENUMBER, "Me", "online"));
+        Profile_Status_img profileStatusImg = new Profile_Status_img(new ProfileImage(null, null)
+                , new Status(null, null, null));
+        insetUserProfileAndStatus(UserSettings.UID, UserSettings.PHONENUMBER, profileStatusImg);
 
     }
 
@@ -179,9 +190,9 @@ public class DataBase extends SQLiteOpenHelper {
         return new ProfileImage(imagePath, imageUrl);
     }
 
-    public com.example.whatsappclone.WhatsApp_Models.Status getUserStatus(String UID) {
+    public Status getUserStatus(String UID) {
         database = this.getReadableDatabase();
-        Cursor cursor = database.query(Status.TABLE_NAME
+        Cursor cursor = database.query(TableStatus.TABLE_NAME
                 , null
                 , Profiles.UID + " = ? "
                 , new String[]{UID}
@@ -191,10 +202,60 @@ public class DataBase extends SQLiteOpenHelper {
         if (cursor.getCount() == EMPTYCURSOR)
             return null;
         cursor.moveToFirst();  //move to the element
-        String statusPath = cursor.getString(cursor.getColumnIndex(Status.STATUS_PATH));
-        String statusUrl = cursor.getString(cursor.getColumnIndex(Status.STATUS_URL));
-        String date = cursor.getString(cursor.getColumnIndex(Status.DATE));
-        return new com.example.whatsappclone.WhatsApp_Models.Status(statusPath, statusUrl,date);
+        String statusPath = cursor.getString(cursor.getColumnIndex(TableStatus.STATUS_PATH));
+        String statusUrl = cursor.getString(cursor.getColumnIndex(TableStatus.STATUS_URL));
+        String date = cursor.getString(cursor.getColumnIndex(TableStatus.DATE));
+        return new Status(statusPath, statusUrl, date);
+    }
+
+    public List<Status> getAllStatus() {
+        Calendar calendar = Calendar.getInstance();
+        List<Status> statusList = new ArrayList<>();
+        database = this.getReadableDatabase();
+        Cursor cursor = database.query(TableStatus.TABLE_NAME
+                , null
+                , TableStatus.STATUS_URL + " != ?"
+                , new String[]{""}
+                , null
+                , null
+                , null);
+        //check if the cursor is not null
+        if (cursor.getCount() != EMPTYCURSOR)
+            while (cursor.moveToNext()) {
+                String path = cursor.getString(cursor.getColumnIndex(TableStatus.STATUS_PATH));
+                String url = cursor.getString(cursor.getColumnIndex(TableStatus.STATUS_URL));
+                String date = cursor.getString(cursor.getColumnIndex(TableStatus.DATE));
+                String phone_number = cursor.getString(cursor.getColumnIndex(TableStatus.PHONE_NUMBER));
+                long longdate = Long.parseLong(date);
+                // check if the status EXP or not
+                // if true delete the status from status collection on fireStore
+                if (calendar.getTimeInMillis() - longdate <= MILLI_SECOND_DAY) {
+                    Status status = new Status(path, url, date);
+                    status.setPhone_number(phone_number);
+                    if (phone_number.equals(UserSettings.PHONENUMBER))// if the status is my status
+                        statusList.add(0,status); //so my status will be the first item
+                    else
+                    statusList.add(status);
+                } else {
+                    statusCollectionRef.document(phone_number).delete();
+                }
+            }
+        return statusList;
+    }
+
+    public boolean isNumberAFriend(String phone_number) {
+        database = this.getReadableDatabase();
+        Cursor cursor = database.query(Contacts.TABLE_NAME
+                , null
+                , Contacts.PHONE_NUMBER + " = ?"
+                , new String[]{phone_number}
+                , null
+                , null
+                , null);
+        if (cursor.getCount() == EMPTYCURSOR)
+            return false;
+        // so the number saved in user contact and he know the number
+        return true;
     }
 
     public void insetUserProfileAndStatus(String UID, String phoneNumber, Profile_Status_img profile_status_img) {
@@ -204,9 +265,9 @@ public class DataBase extends SQLiteOpenHelper {
         //for profile table
         profileContentValues.put(Profiles.UID, UID);
         profileContentValues.put(Profiles.PHONE_NUMBER, phoneNumber);
-         //for status table
-        statusContentValues.put(Status.UID, UID);
-        statusContentValues.put(Status.PHONE_NUMBER, phoneNumber);
+        //for status table
+        statusContentValues.put(TableStatus.UID, UID);
+        statusContentValues.put(TableStatus.PHONE_NUMBER, phoneNumber);
         //handel if the profile don't have profile image
         if (profile_status_img.getProfileImage() != null) {
             profileContentValues.put(Profiles.IMAGE_PATH, profile_status_img.getProfilePath());
@@ -214,12 +275,12 @@ public class DataBase extends SQLiteOpenHelper {
         }
         //handel if the profile don't status
         if (profile_status_img.getStatus() != null) {
-            statusContentValues.put(Status.STATUS_PATH, profile_status_img.getStatusPath());
-            statusContentValues.put(Status.STATUS_URL, profile_status_img.getStatusUrl());
-            statusContentValues.put(Status.DATE, profile_status_img.getStatusDate());
+            statusContentValues.put(TableStatus.STATUS_PATH, profile_status_img.getStatusPath());
+            statusContentValues.put(TableStatus.STATUS_URL, profile_status_img.getStatusUrl());
+            statusContentValues.put(TableStatus.DATE, profile_status_img.getStatusDate());
         }
         database.insert(Profiles.TABLE_NAME, null, profileContentValues);
-        database.insert(Status.TABLE_NAME, null, statusContentValues);
+        database.insert(TableStatus.TABLE_NAME, null, statusContentValues);
 
 
     }
@@ -239,17 +300,24 @@ public class DataBase extends SQLiteOpenHelper {
 
     }
 
-    public void upDateStatusImage(String UID, com.example.whatsappclone.WhatsApp_Models.Status status) {
+    public void upDateStatusImage(String UID, String phone_number, Status status) {
         database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         if (status != null) {
-            contentValues.put(Status.STATUS_PATH, status.getStatusPath());
-            contentValues.put(Status.STATUS_URL, status.getStatusUrl());
-            database.update(
-                    Status.TABLE_NAME
+            contentValues.put(TableStatus.STATUS_PATH, status.getStatusPath());
+            contentValues.put(TableStatus.STATUS_URL, status.getStatusUrl());
+            contentValues.put(TableStatus.DATE, status.getDate());
+            if (UID != null)
+                database.update(
+                        TableStatus.TABLE_NAME
+                        , contentValues
+                        , TableStatus.UID + "= ?"
+                        , new String[]{UID});
+            else database.update(
+                    TableStatus.TABLE_NAME
                     , contentValues
-                    , Status.UID + "= ?"
-                    , new String[]{UID});
+                    , TableStatus.PHONE_NUMBER + "= ?"
+                    , new String[]{phone_number});
         }
 
 

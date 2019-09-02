@@ -186,7 +186,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                                     , profile_status);
                         else {//update
                             dataBase.upDateProfileImage(profile.getUid(), profile.getProfileImage());
-                            dataBase.upDateStatusImage(profile.getUid(), profile.getStatus());
+                            dataBase.upDateStatusImage(profile.getUid(),null, profile.getStatus());
                         }
                     }
                 }

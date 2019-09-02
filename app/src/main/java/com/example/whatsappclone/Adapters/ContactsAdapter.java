@@ -1,4 +1,4 @@
-package com.example.whatsappclone.WhatsApp_Models;
+package com.example.whatsappclone.Adapters;
 
 import android.content.Context;
 import android.view.LayoutInflater;
