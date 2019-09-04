@@ -84,13 +84,14 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private TextView profilePhoneNumber;
     private CircleImageView profileImage;
     private UploadMedia uploadMedia;
+    private List<Status> statusList;
     private DataBase dataBase;
     private ProgressBar profileProgressBar;
     private RecyclerView statusRecyclerView;
     private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
     // for attach listener on status collection
-    private CollectionReference statusCollectionRef =
-            firestore.collection("profile").document(UserSettings.PHONENUMBER).collection("status");
+    private CollectionReference statusCollectionRef;
+
 
 
     @Override
@@ -218,16 +219,18 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_base_chat2);
-        // inti class for upload media images and videos
-        uploadMedia = new UploadMedia(this);
         //i.g US this will use with libphonenumber lib
         // to handle the numbers whose  doesn't have area code i.g(+1)
         TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
         final String countryCode = tm.getSimCountryIso();
+        // open the login activity
         if (auth.getCurrentUser() == null) {
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
             finish();
         } else {
+            // inti class for upload media images and videos
+            uploadMedia = new UploadMedia(this);
+            statusCollectionRef = firestore.collection("profile").document(UserSettings.PHONENUMBER).collection("status");
             // ask for all Permissions
             AskForPermissions();
             // for DataBase Debug
@@ -273,11 +276,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             drawable.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
             profileProgressBar.setProgressDrawable(drawable);
             profileImage = nav.findViewById(R.id.profile_Image);
-            //set the profile image from DB
-            Glide.with(this)
-                    .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
-                    .error(R.drawable.ic_default_avatar_profile)//set the default image if the user delete the profile image or something  went wrong
-                    .into(profileImage);
+
             //choose image profile
             profileImage.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -289,9 +288,24 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
                 }
             });
-        }
-        // status init
-        List<Status> statusList = dataBase.getAllStatus(); //get all status from DataBase
+            contactsWithClouldDB.setOnSyncFinish(new SyncContactsWithCloudDB.OnSyncFinish() {
+                @Override
+                public void onFinish(List<DataBase.Contact_Profile> contact_profiles) {
+                    //set the profile image from DB
+                    Glide.with(getApplicationContext())
+                            .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
+                            .error(R.drawable.ic_default_avatar_profile)//set the default image if the user delete the profile image or something  went wrong
+                            .into(profileImage);
+                    // status init
+                    statusInit();
+                }
+            });
+
+    }
+
+    }
+    public void statusInit(){
+        statusList = dataBase.getAllStatus(); //get all status from DataBase
         statusRecyclerView = findViewById(R.id.StatusRecyclerView);
         statusRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         final StatusAdapter statusAdapter = new StatusAdapter(this, statusList);
@@ -322,31 +336,31 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 }
                 String phone_number;//it is the same of (get collection id)
                 Status status;
-                for (DocumentChange documentChange:queryDocumentSnapshots.getDocumentChanges()){
-                    switch (documentChange.getType()){
+                for (DocumentChange documentChange : queryDocumentSnapshots.getDocumentChanges()) {
+                    switch (documentChange.getType()) {
                         case ADDED:
-                             phone_number=documentChange.getDocument().getId();
-                             status=documentChange.getDocument().toObject(Status.class);
+                            phone_number = documentChange.getDocument().getId();
+                            status = documentChange.getDocument().toObject(Status.class);
                             status.setPhone_number(phone_number);
                             // check the number
-                            if (dataBase.isNumberAFriend(phone_number)){
-                            statusAdapter.addStatusTolist(status);
-                            dataBase.upDateStatusImage(null,phone_number,status);
+                            if (dataBase.isNumberAFriend(phone_number)) {
+                                statusAdapter.addStatusTolist(status);
+                                dataBase.upDateStatusImage(null, phone_number, status);
                             }
                             break;
                         case REMOVED:
-                             phone_number=documentChange.getDocument().getId();
-                             if (dataBase.isNumberAFriend(phone_number)){
-                                 statusAdapter.removeStatusFromList(phone_number);
-                                 dataBase.upDateStatusImage(null,phone_number,new Status("","",""));
-                             }
+                            phone_number = documentChange.getDocument().getId();
+                            if (dataBase.isNumberAFriend(phone_number)) {
+                                statusAdapter.removeStatusFromList(phone_number);
+                                dataBase.upDateStatusImage(null, phone_number, new Status("", "", ""));
+                            }
                             break;
                         case MODIFIED:
-                            phone_number=documentChange.getDocument().getId();
-                            if (dataBase.isNumberAFriend(phone_number)){
-                                status=documentChange.getDocument().toObject(Status.class);
+                            phone_number = documentChange.getDocument().getId();
+                            if (dataBase.isNumberAFriend(phone_number)) {
+                                status = documentChange.getDocument().toObject(Status.class);
                                 status.setPhone_number(phone_number);
-                                dataBase.upDateStatusImage(null,phone_number,status);
+                                dataBase.upDateStatusImage(null, phone_number, status);
                                 statusAdapter.removeStatusFromList(phone_number);
                                 statusAdapter.addStatusTolist(status);
                             }
@@ -357,8 +371,6 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
             }
         });
-
-
     }
 
 

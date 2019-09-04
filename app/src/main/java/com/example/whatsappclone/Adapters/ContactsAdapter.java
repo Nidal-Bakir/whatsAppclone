@@ -56,7 +56,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ViewHo
         return contact_profiles.size();
     }
 
-    class ViewHolder extends RecyclerView.ViewHolder {
+    protected class ViewHolder extends RecyclerView.ViewHolder {
         CircleImageView image;
         TextView name;
         ConstraintLayout layout;

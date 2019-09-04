@@ -81,7 +81,6 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
     }
     @Override
     protected void onPostExecute(Void aVoid) {
-        if (force_sync)
        onSyncFinish.onFinish(contact_profiles);
     }
     private void syncContacts(List<DataBase.Contact> contacts) {
