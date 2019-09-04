@@ -37,16 +37,18 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
     public void addStatusTolist(Status status) {
         statuses.add(status);
-        this.notifyDataSetChanged();
+        this.notifyItemInserted(statuses.size()-1);
     }
 
     public void removeStatusFromList(String phone_number) {
         Iterator<Status> iterator = statuses.iterator();
-        while (iterator.hasNext()) {
+            for (int i=0;iterator.hasNext();i++) {
             Status status = iterator.next();
-            if (status.getPhone_number().equals(phone_number))
+            if (status.getPhone_number().equals(phone_number)) {
                 iterator.remove();
-            this.notifyDataSetChanged();
+                this.notifyItemRemoved(i);
+                break;
+            }
         }
     }
 

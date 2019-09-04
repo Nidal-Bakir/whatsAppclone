@@ -466,23 +466,31 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
+        // Handle navigation view item clicks.
+        switch (item.getItemId()){
+            case R.id.nav_newGroup:
+                //ToDO:handel the new group action
+                break;
+            case R.id.status_privacy:
+                startActivity(new Intent(BaseChatActivity2.this,StatusPrivacy.class));
+                break;
+            case R.id.nav_contacts:
+                startActivity(new Intent(BaseChatActivity2.this, ContactsActivity.class));
+                break;
+            case R.id.nav_settings:
+                break;
+            case R.id.nav_share:
+                break;
+            case R.id.nav_send:
+                break;
 
-        if (id == R.id.nav_newGroup) {
-            //ToDO:handel the new group action
-        } else if (id == R.id.nav_contacts) {
-            startActivity(new Intent(BaseChatActivity2.this, ContactsActivity.class));
-        } else if (id == R.id.nav_settings) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
 
         }
 
+
+
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
-        return true;
+        return false;
     }
 }

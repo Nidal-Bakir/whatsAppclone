@@ -8,6 +8,10 @@
             android:id="@+id/nav_newGroup"
             android:icon="@drawable/ic_group"
             android:title="@string/menu_new_Group" />
+        <item android:id="@+id/status_privacy"
+            android:title="Status privacy"
+            android:icon="@drawable/ic_status_privacy"
+            />
         <item
             android:id="@+id/nav_contacts"
             android:icon="@drawable/ic_chat_black_24dp"
