@@ -175,7 +175,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                         return;
                     }
                     //check if the user connect to the internet
-                    InternetCheck internetCheck = new InternetCheck();
+                    InternetCheck internetCheck = new InternetCheck(this);
                     internetCheck.execute();
                     // this method will called when the check Completed because the check can not run
                     // on UI THREAD
@@ -438,10 +438,14 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             finish();
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
         }
-
-
+        dataBase=new DataBase(this);
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        dataBase.close();
+    }
 
     @Override
     public void onBackPressed() {
@@ -449,6 +453,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
+            dataBase.close();
             super.onBackPressed();
         }
     }

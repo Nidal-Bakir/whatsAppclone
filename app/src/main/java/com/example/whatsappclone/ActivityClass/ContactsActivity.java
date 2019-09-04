@@ -105,21 +105,29 @@ public class ContactsActivity extends AppCompatActivity {
 
     private void sync() {
         //you can not sync if there is no internet
-        if (InternetCheck.isOnline()) {
-            syncContactsWithCloudDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
-            syncContactsWithCloudDB.execute(true);
-            syncContactsWithCloudDB.setOnSyncFinish(new SyncContactsWithCloudDB.OnSyncFinish() {
-                @Override
-                public void onFinish(List<DataBase.Contact_Profile> contact_profiles) {
-                    adapter.setContact_profiles(contact_profiles);
-                    adapter.notifyDataSetChanged();
-                    //set the number of contacts
-                    contacts_count.setText(String.valueOf(contact_profiles.size()) + " contacts");
-                    progressBar.setVisibility(View.GONE);
-                }
-            });
+        InternetCheck internetCheck=new InternetCheck(this);
+        internetCheck.execute();
+        internetCheck.onComplete(new InternetCheck.OnCheckComplete() {
+            @Override
+            public void onCheckComplete(boolean isOnline) {
+                if (isOnline) {
+                    syncContactsWithCloudDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
+                    syncContactsWithCloudDB.execute(true);
+                    syncContactsWithCloudDB.setOnSyncFinish(new SyncContactsWithCloudDB.OnSyncFinish() {
+                        @Override
+                        public void onFinish(List<DataBase.Contact_Profile> contact_profiles) {
+                            adapter.setContact_profiles(contact_profiles);
+                            adapter.notifyDataSetChanged();
+                            //set the number of contacts
+                            contacts_count.setText(String.valueOf(contact_profiles.size()) + " contacts");
+                            progressBar.setVisibility(View.GONE);
+                        }
+                    });
 
-        }
+                }
+            }
+        });
+
     }
 
     @Override

@@ -15,6 +15,7 @@ import com.example.whatsappclone.WhatsApp_Models.GenralContact;
 import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
 import com.example.whatsappclone.WhatsApp_Models.Status;
+import com.example.whatsappclone.WhatsApp_Models.StatusPrivacyModel;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -158,12 +159,14 @@ public class DataBase extends SQLiteOpenHelper {
         Profile_Status_img profileStatusImg = new Profile_Status_img(new ProfileImage(null, null)
                 , new Status(null, null, null));
         setDefaultUserInfo(UserSettings.UID, UserSettings.PHONENUMBER, profileStatusImg, db);
-
+        setDefaultUserInfo(new StatusPrivacyModel(UserSettings.UID, UserSettings.PHONENUMBER, "Me",true),db);
     }
 
-    // use this tow methods to create the def info for user when hte app
-    // launch for the first time (and if i tired to call getRead or write DB)
-    // that will throw IllegalStateException: getDatabase called recursively so i use db parameter
+    /**
+     * use this tow methods to create the def info for user when hte app
+     * launch for the first time (and if i tired to call getRead or write DB)
+     * that will throw IllegalStateException: getDatabase called recursively so i use db parameter
+     **/
     private void setDefaultUserInfo(Contact contact, SQLiteDatabase db) {
         ContentValues contentValues = new ContentValues();
         contentValues.put(ContactsTable.UID, contact.getUID());
@@ -203,7 +206,17 @@ public class DataBase extends SQLiteOpenHelper {
 
 
     }
-
+   private void setDefaultUserInfo(StatusPrivacyModel statusPrivacyModel,SQLiteDatabase db){
+       ContentValues contentValues = new ContentValues();
+       contentValues.put(PrivacyTable.UID, statusPrivacyModel.getUID());
+       contentValues.put(PrivacyTable.PHONE_NUMBER, statusPrivacyModel.getPhone_number());
+       contentValues.put(PrivacyTable.CONTACT_NAME, statusPrivacyModel.getContact_name());
+       contentValues.put(PrivacyTable.AUTHORIZED, statusPrivacyModel.isAuthorized());
+       db.insert(
+               PrivacyTable.TABLE_NAME
+               , null
+               , contentValues);
+   }
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         //TOdo:get the UIDs of tables to delete them
@@ -399,7 +412,12 @@ public class DataBase extends SQLiteOpenHelper {
         database = this.getReadableDatabase();
         List<Contact_Profile> contact_profiles = new ArrayList<>();
         Cursor cursor = database.query(ContactsTable.TABLE_NAME
-                , null, null, null, null, null, ContactsTable.CONTACT_NAME);
+                , null
+                , null
+                , null
+                , null
+                , null
+                , ContactsTable.CONTACT_NAME);
         //loop throw all contact and get them
         while (cursor.moveToNext()) {
             Cursor ProfileCursor = database.query(ProfilesTable.TABLE_NAME
@@ -445,6 +463,24 @@ public class DataBase extends SQLiteOpenHelper {
 
     }
 
+    public void updateContact(String contactName, String UID, String phone_number) {
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(ContactsTable.CONTACT_NAME, contactName);
+        //so i can update using UID OR phone number
+        if (UID != null)
+            database.update(
+                    ContactsTable.TABLE_NAME
+                    , contentValues
+                    , ContactsTable.UID + " = ?"
+                    , new String[]{UID});
+        else database.update(
+                ContactsTable.TABLE_NAME
+                , contentValues
+                , ContactsTable.PHONE_NUMBER + " = ?"
+                , new String[]{phone_number});
+    }
+
     public String getOnlineStatusForUser(String uid, String phone_number) {
         Cursor cursor;
         //so i can search using UID OR phone number
@@ -483,23 +519,80 @@ public class DataBase extends SQLiteOpenHelper {
                 , new String[]{phone_number});
     }
 
-    public void updateContact(String contactName, String UID, String phone_number) {
+    public void addContactToStatusPrivacy(StatusPrivacyModel statusPrivacyModel) {
         database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
-        contentValues.put(ContactsTable.CONTACT_NAME, contactName);
+        contentValues.put(PrivacyTable.UID, statusPrivacyModel.getUID());
+        contentValues.put(PrivacyTable.PHONE_NUMBER, statusPrivacyModel.getPhone_number());
+        contentValues.put(PrivacyTable.CONTACT_NAME, statusPrivacyModel.getContact_name());
+        contentValues.put(PrivacyTable.AUTHORIZED, statusPrivacyModel.isAuthorized());
+        database.insert(
+                PrivacyTable.TABLE_NAME
+                , null
+                , contentValues);
+    }
+
+    public void upDateContactNameInStatusPrivacy(String contactName, String UID, String phone_number) {
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(PrivacyTable.CONTACT_NAME, contactName);
         //so i can update using UID OR phone number
         if (UID != null)
             database.update(
-                    ContactsTable.TABLE_NAME
+                    PrivacyTable.TABLE_NAME
                     , contentValues
-                    , ContactsTable.UID + " = ?"
+                    , PrivacyTable.UID + " = ?"
                     , new String[]{UID});
         else database.update(
-                ContactsTable.TABLE_NAME
+                PrivacyTable.TABLE_NAME
                 , contentValues
-                , ContactsTable.PHONE_NUMBER + " = ?"
+                , PrivacyTable.PHONE_NUMBER + " = ?"
                 , new String[]{phone_number});
     }
 
+    public void upDateAuthorizedValue(int authorized, String UID, String phone_number) {
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(PrivacyTable.AUTHORIZED, authorized);
+        //so i can update using UID OR phone number
+        if (UID != null)
+            database.update(
+                    PrivacyTable.TABLE_NAME
+                    , contentValues
+                    , PrivacyTable.UID + " = ?"
+                    , new String[]{UID});
+        else database.update(
+                PrivacyTable.TABLE_NAME
+                , contentValues
+                , PrivacyTable.PHONE_NUMBER + " = ?"
+                , new String[]{phone_number});
+    }
+
+    public List<StatusPrivacyModel> getAllContactsInStatusPrivacy() {
+        database = this.getReadableDatabase();
+        List<StatusPrivacyModel>privacyModelList=new ArrayList<>();
+        boolean authorized;
+        Cursor cursor = database.query(PrivacyTable.TABLE_NAME
+                , null
+                , StatusTable.UID + " != ?"
+                , new String[]{UserSettings.UID}
+                , null
+                , null
+                , null);
+        while (cursor.moveToNext()) {
+            //if the authorized filed == 1 then the contact authorized
+            // else the contact not authorized
+            if (cursor.getInt(cursor.getColumnIndex(PrivacyTable.AUTHORIZED)) == 1)
+                authorized = true;
+            else authorized = false;
+            StatusPrivacyModel statusPrivacyModel =
+                    new StatusPrivacyModel(cursor.getString(cursor.getColumnIndex(PrivacyTable.UID))
+                            , cursor.getString(cursor.getColumnIndex(PrivacyTable.PHONE_NUMBER))
+                            , cursor.getString(cursor.getColumnIndex(PrivacyTable.CONTACT_NAME))
+                            , authorized);
+            privacyModelList.add(statusPrivacyModel);
+        }
+        return privacyModelList;
+    }
 
 }

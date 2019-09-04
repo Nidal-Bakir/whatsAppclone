@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
+import com.example.whatsappclone.WhatsApp_Models.StatusPrivacyModel;
 import com.example.whatsappclone.WhatsApp_Models.UserProfile;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -31,7 +32,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
     private String countryCode;
     private List<DataBase.Contact> contacts;
     private OnSyncFinish onSyncFinish;
-    private List<DataBase.Contact_Profile> contact_profiles=null;
+    private List<DataBase.Contact_Profile> contact_profiles = null;
     private boolean force_sync;
     //i.g US this will use with libphonenumber lib
     // to handle the numbers whose  doesn't have area code i.g(+1)
@@ -49,7 +50,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
 
     @Override
     protected Void doInBackground(Boolean... booleans) {
-        force_sync=booleans[0];
+        force_sync = booleans[0];
         //read the contacts from phone
         contacts = getContactsFromUserPhone();
         //filter the contacts (get Valid contacts) and add area code
@@ -68,7 +69,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
             // and Check the compatibility between contacts names in Db and user contacts names
             force_syncContacts(contacts);
             //for notify the adapter
-            contact_profiles=dataBase.getAllContact();
+            contact_profiles = dataBase.getAllContact();
         } else {
             //if the Contacts_Table is Empty the contacts will sync
             // and Check the compatibility between contacts names in Db and user contacts names
@@ -79,15 +80,18 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
 
         return null;
     }
+
     @Override
     protected void onPostExecute(Void aVoid) {
-       onSyncFinish.onFinish(contact_profiles);
+        onSyncFinish.onFinish(contact_profiles);
     }
+
     private void syncContacts(List<DataBase.Contact> contacts) {
         final DataBase dataBase = new DataBase(context);
         for (DataBase.Contact contact : contacts) {
             if (dataBase.getContact(null, contact.getPhone_number()) != null) {
                 dataBase.updateContact(contact.getContact_name(), null, contact.getPhone_number());
+                dataBase.upDateContactNameInStatusPrivacy(contact.getContact_name(),null,contact.getPhone_number());
             }
         }
     }
@@ -115,7 +119,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                     if (pCur.moveToFirst()) {
                         String phoneNumber = pCur.getString(pCur.getColumnIndex(
                                 ContactsContract.CommonDataKinds.Phone.NUMBER));
-                        ArrayOfContacts.add(new DataBase.Contact(null, phoneNumber, name,null));
+                        ArrayOfContacts.add(new DataBase.Contact(null, phoneNumber, name, null));
                     }
 
                     pCur.close();
@@ -141,7 +145,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
             String newNumber = numberUtil.format(phoneNumber, PhoneNumberUtil.PhoneNumberFormat.E164);
             if (numberUtil.isPossibleNumber(phoneNumber))
                 if (numberUtil.isValidNumber(phoneNumber)) {
-                    contacts1.add(new DataBase.Contact(null, newNumber, contact.getContact_name(),null));
+                    contacts1.add(new DataBase.Contact(null, newNumber, contact.getContact_name(), null));
                 }
 
         }
@@ -166,27 +170,37 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                         UserProfile profile = snapshot.toObject(UserProfile.class);
                         contact.setUID(profile.getUid());
                         contact.setOnline_status(profile.getOnLineStatus());
-                        //add the contact to contacts table
-                        //if the data exist just upDate the data
-                        if (dataBase.getContact(profile.getUid(), null) == null)
+
+                        //if the data exist just upDate the data else add the data to the tables
+                        if (dataBase.getContact(profile.getUid(), null) == null) {
+                            //add the contact to contacts table
                             dataBase.addContact(contact);
-                        else {//update
-                            dataBase.updateContact(contact.getContact_name(), profile.getUid(), null);
-                            dataBase.upDateOnlineStatusForUser(profile.getUid(),null,profile.getOnLineStatus());
-                        }
-                        Profile_Status_img profile_status = new Profile_Status_img(
-                                profile.getProfileImage()
-                                , profile.getStatus());
-                        //add the profile image to the profile table and status image to status table
-                        //if the data exist just upDate the data
-                        if (dataBase.getUserProfile(profile.getUid()) == null)
+                            //add the profile image to the profile table and status image to status table
+                            Profile_Status_img profile_status = new Profile_Status_img(
+                                    profile.getProfileImage()
+                                    , profile.getStatus());
                             dataBase.insetUserProfileAndStatus(profile.getUid()
                                     , profile.getPhoneNumber()
                                     , profile_status);
-                        else {//update
+                            //add the contact to the status privacy table
+                            dataBase.addContactToStatusPrivacy(
+                                    new StatusPrivacyModel(contact.getUID()
+                                            , contact.getPhone_number()
+                                            , contact.getContact_name()
+                                            , true));// true the default so anyone can see your status
+
+                        } else {
+                            //update contact name and online Status
+                            dataBase.updateContact(contact.getContact_name(), profile.getUid(), null);
+                            dataBase.upDateOnlineStatusForUser(profile.getUid(), null, profile.getOnLineStatus());
+                            //update profile and status image
                             dataBase.upDateProfileImage(profile.getUid(), profile.getProfileImage());
-                            dataBase.upDateStatusImage(profile.getUid(),null, profile.getStatus());
+                            dataBase.upDateStatusImage(profile.getUid(), null, profile.getStatus());
+                            //update contact name in status privacy table
+                            dataBase.upDateContactNameInStatusPrivacy(contact.getContact_name(), profile.getUid(), null);
                         }
+
+
                     }
                 }
 
@@ -195,10 +209,12 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
 
         }
     }
-    public void setOnSyncFinish(OnSyncFinish onSyncFinish){
-        this.onSyncFinish=onSyncFinish;
+
+    public void setOnSyncFinish(OnSyncFinish onSyncFinish) {
+        this.onSyncFinish = onSyncFinish;
     }
-    public interface OnSyncFinish{
+
+    public interface OnSyncFinish {
         void onFinish(List<DataBase.Contact_Profile> contact_profiles);
     }
 }

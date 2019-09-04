@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -31,23 +32,35 @@ public class PrivacyAdapter extends RecyclerView.Adapter<PrivacyAdapter.ViewHold
         this.context = context;
         dataBase = new DataBase(context);
     }
-        // select all the contact OR select nun of them
-    public void selectAll() {
+
+    // select all the contact OR select nun of them
+    public boolean selectAll() {
         if (isSelectedAll) {
-            for (int i=0;i<statusPrivacyList.size();i++)
+            for (int i = 0; i < statusPrivacyList.size(); i++)
                 statusPrivacyList.get(i).setAuthorized(false);
             isSelectedAll = false;
         } else {
-            for (int i=0;i<statusPrivacyList.size();i++)
-            statusPrivacyList.get(i).setAuthorized(true);
+            for (int i = 0; i < statusPrivacyList.size(); i++)
+                statusPrivacyList.get(i).setAuthorized(true);
             isSelectedAll = true;
         }
+        this.notifyItemRangeChanged(0, statusPrivacyList.size());
+        return isSelectedAll;
     }
-    public void changTheSelection(int position){
+    public void changeAuthorizedInDataSet(int position,boolean isChecked ){
+        statusPrivacyList.get(position).setAuthorized(isChecked);
+
+    }
+    public boolean changSelection(int position) {
         if (statusPrivacyList.get(position).isAuthorized())
             statusPrivacyList.get(position).setAuthorized(false);
         else statusPrivacyList.get(position).setAuthorized(true);
         this.notifyItemChanged(position);
+        return statusPrivacyList.get(position).isAuthorized();
+    }
+
+    public List<StatusPrivacyModel> getDatasetFromAdapter() {
+        return statusPrivacyList;
     }
 
     @NonNull
@@ -58,17 +71,23 @@ public class PrivacyAdapter extends RecyclerView.Adapter<PrivacyAdapter.ViewHold
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
+    public void onBindViewHolder(@NonNull final ViewHolder holder, final int position) {
         Glide.with(context)
                 .load(dataBase.getUserProfile(statusPrivacyList.get(position).getUID()))
                 .error(R.drawable.ic_default_avatar_profile)
                 .into(holder.image);
         holder.name.setText(statusPrivacyList.get(position).getContact_name());
         holder.checkBox.setChecked(statusPrivacyList.get(position).isAuthorized());
+        holder.checkBox.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onItemClickListener.onCheckChanged(position,holder.checkBox.isChecked());
+            }
+        });
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onItemClickListener.onItemClickListener(position);
+                onItemClickListener.onClick(position);
             }
         });
     }
@@ -85,18 +104,22 @@ public class PrivacyAdapter extends RecyclerView.Adapter<PrivacyAdapter.ViewHold
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            image = itemView.findViewById(R.id.contact_profile);
-            name = itemView.findViewById(R.id.contact_name);
+            image = itemView.findViewById(R.id.privacy_contact_profile);
+            name = itemView.findViewById(R.id.privacy_contact_name);
             checkBox = itemView.findViewById(R.id.privacy_checkBox);
 
 
         }
     }
-    void onClick(OnItemClickListener onItemClickListener){
-        this.onItemClickListener=onItemClickListener;
+
+    public void onItemClickListener(OnItemClickListener onItemClickListener) {
+        this.onItemClickListener = onItemClickListener;
     }
-    public interface OnItemClickListener{
-        void onItemClickListener(int position);
+
+    public interface OnItemClickListener {
+        void onClick(int position);
+        void onCheckChanged(int position,boolean isChecked);
     }
+
 
 }

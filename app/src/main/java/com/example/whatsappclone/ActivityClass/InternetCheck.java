@@ -9,6 +9,12 @@ import java.io.IOException;
 class InternetCheck extends AsyncTask<Void,Void,Boolean> {
     private static final String TAG = "InternetCheck";
     private OnCheckComplete onCheckComplete;
+    private Context context;
+
+    public InternetCheck(Context context) {
+        this.context = context;
+    }
+
     public static boolean isOnline() {
         Runtime runtime = Runtime.getRuntime();
         try {
@@ -38,7 +44,7 @@ class InternetCheck extends AsyncTask<Void,Void,Boolean> {
 
     @Override
     protected Boolean doInBackground(Void... voids) {
-        return isOnline();
+        return checkInternetConnection(context);
     }
 
     @Override
