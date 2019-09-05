@@ -1,59 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:background="#FAFAFA"
+    android:orientation="vertical">
+
+
 
     <androidx.cardview.widget.CardView
-        android:layout_width="100dp"
-        app:cardBackgroundColor="@color/white"
-        android:layout_height="100dp"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
         android:layout_marginStart="2dp"
-        app:cardCornerRadius="12dp">
+        android:layout_marginTop="8dp"
+        android:background="@color/white"
+        app:cardCornerRadius="36dp">
+
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center_vertical|center_horizontal"
             android:orientation="vertical">
 
-            <com.github.siyamed.shapeimageview.mask.PorterShapeImageView
+            <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/status_img"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:src="@mipmap/ic_launcher"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:siShape="@drawable/shape_rounded_rectangle"
-                app:siSquare="true" />
-
-            <TextView
-                android:id="@+id/status_owner"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="8dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="abd al azez al  abd mtn2"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
+                android:layout_width="65dp"
+                android:layout_height="65dp"
+                android:src="@drawable/ic_default_avatar_profile"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent" />
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
 
             <de.hdodenhof.circleimageview.CircleImageView
                 android:id="@+id/status_img_owner"
-                android:layout_width="35dp"
-                android:layout_height="35dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="4dp"
                 android:src="@drawable/ic_add_green"
+                android:visibility="gone"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
+
+            <fr.castorflex.android.circularprogressbar.CircularProgressBar
+                android:id="@+id/uploadprogress"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:indeterminate="true"
+                app:cpb_color="@color/chatFloating"
+                app:cpb_max_sweep_angle="300"
+                app:cpb_min_sweep_angle="10"
+                app:cpb_rotation_speed="0.6"
+                app:cpb_stroke_width="4dp"
+                app:cpb_sweep_speed="0.6"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="@+id/status_img" />
+
+
         </androidx.constraintlayout.widget.ConstraintLayout>
-
-
     </androidx.cardview.widget.CardView>
-
+    <TextView
+        android:id="@+id/status_owner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="4dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="nidal bakir"
+        android:textColor="#000000"
+        android:textSize="12sp" />
 </LinearLayout>
+

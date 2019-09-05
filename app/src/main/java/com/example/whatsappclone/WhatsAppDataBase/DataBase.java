@@ -606,13 +606,22 @@ public class DataBase extends SQLiteOpenHelper {
         return privacyModelList;
     }
 
-    public List<String> getAllAuthorizedContacts() {
+    public List<String> getAllAuthorizedContacts(boolean AuthorizedOnly) {
         database = this.getReadableDatabase();
+        Cursor cursor;
         List<String> phone_numbers = new ArrayList<>();
-        Cursor cursor = database.query(PrivacyTable.TABLE_NAME
+        if (AuthorizedOnly) //will return only the Authorized users
+            cursor = database.query(PrivacyTable.TABLE_NAME
+                    , new String[]{PrivacyTable.PHONE_NUMBER}
+                    , PrivacyTable.AUTHORIZED + " = ?"
+                    , new String[]{"1"}
+                    , null
+                    , null
+                    , null);
+        else cursor = database.query(PrivacyTable.TABLE_NAME
                 , new String[]{PrivacyTable.PHONE_NUMBER}
-                , PrivacyTable.AUTHORIZED + " = ?"
-                , new String[]{"1"}
+                , null
+                , null
                 , null
                 , null
                 , null);

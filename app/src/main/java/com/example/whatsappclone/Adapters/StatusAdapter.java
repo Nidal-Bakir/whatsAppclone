@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,6 +19,8 @@ import com.example.whatsappclone.WhatsApp_Models.Status;
 
 import java.util.Iterator;
 import java.util.List;
+
+import de.hdodenhof.circleimageview.CircleImageView;
 
 public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final int ADD_STATUS_HEADER_VIEW = 0;
@@ -36,12 +39,6 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     }
 
     public void addStatusToList(Status status) {
-//        Iterator<Status>iterator=statuses.iterator();
-//        while (iterator.hasNext()){
-//            Status statusiterator=iterator.next();
-//            if (statusiterator.getPhone_number().equals(status.getPhone_number()))
-//
-//        }
         for (int i = 0; i < statuses.size(); i++) {
             if (statuses.get(i).getPhone_number().equals(status.getPhone_number()))
                 if (statuses.get(i).getStatusUrl().equals(status.getStatusUrl()))
@@ -113,7 +110,10 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                     .load(statuses.get(position - 1).getStatusUrl())
                     .error(R.drawable.ic_default_avatar_profile)
                     .into(normalStatus.status);
-
+                    // so the user can see that his store is uploading (in progress)
+                    if (statuses.get(position-1).isShowProgressBar())
+                        normalStatus.uploadProgress.setVisibility(View.VISIBLE);
+                    else  normalStatus.uploadProgress.setVisibility(View.GONE);
             // handle if the status is my status
             if (statuses.get(position - 1).getPhone_number().equals(MY_STATUS)) {
                 normalStatus.ownerName.setText("Your status");
@@ -171,15 +171,17 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
 
     private class Normal_status extends RecyclerView.ViewHolder {
-        ImageView ownerImg;
-        ImageView status;
+        CircleImageView ownerImg;
+        CircleImageView status;
         TextView ownerName;
+        ProgressBar uploadProgress;
 
         public Normal_status(@NonNull View itemView) {
             super(itemView);
             ownerImg = itemView.findViewById(R.id.status_img_owner);
             ownerName = itemView.findViewById(R.id.status_owner);
             status = itemView.findViewById(R.id.status_img);
+            uploadProgress=itemView.findViewById(R.id.uploadprogress);
         }
     }
 

@@ -212,12 +212,18 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                         @Override
                         public void onCheckComplete(boolean isOnline) {
                             if (isOnline){
+                                //to show the user that the status upload is in progress
+                                Status myStatus=new Status("whatever",data.getData().toString(),"whatever");
+                                myStatus.setShowProgressBar(true);
+                                myStatus.setPhone_number(UserSettings.PHONENUMBER);
+                                statusAdapter.addStatusToList(myStatus);
+                                //upload the image to FireBase and send the status
                                 uploadMedia.upLoadStatusImage(data.getData());
                                 uploadMedia.OnComplete(new UploadMedia.OnStatusUploadCompleteListener() {
                                     @Override
-                                    public void onUploadCompleteListener(String uri) {
+                                    public void onUploadCompleteListener(Status status) {
+                                        statusAdapter.addStatusToList(status);
                                         statusCollectionListener();
-                                        Log.d(TAG, "onUploadCompleteListener: "+"++********************************");
                                     }
                                 });
                             }else {

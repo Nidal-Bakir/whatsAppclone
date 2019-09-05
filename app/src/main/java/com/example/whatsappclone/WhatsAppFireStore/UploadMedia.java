@@ -91,7 +91,6 @@ public class UploadMedia {
         // ref for status folder => image as name (status.png/.jpg)
         final StorageReference statusStorageReference = userStorageReference.child("status").child("status");
         statusStorageReference.delete(); //remove the image and replace it
-
         UploadTask uploadTask = statusStorageReference.putFile(statusUri);
         Task<Uri> task = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
             @Override
@@ -116,7 +115,8 @@ public class UploadMedia {
                 profileDocRef.update("status", status);
                 //send the status to users
                 sendStatus(status);
-                onStatusUploadCompleteListener.onUploadCompleteListener(statusUri.toString());
+                status.setPhone_number(UserSettings.PHONENUMBER);
+                onStatusUploadCompleteListener.onUploadCompleteListener(status);
             }
         }).addOnFailureListener(new OnFailureListener() {
             @Override
@@ -126,7 +126,8 @@ public class UploadMedia {
         });
     }
     private void sendStatus(Status status){
-        List<String>phone_numbers=dataBase.getAllAuthorizedContacts();
+        removeStatusFromFireStore();
+        List<String>phone_numbers=dataBase.getAllAuthorizedContacts(true);
         String myPhoneNumber=UserSettings.PHONENUMBER;
         CollectionReference statusCollectionReference;
         for (String number:phone_numbers){
@@ -134,11 +135,20 @@ public class UploadMedia {
             statusCollectionReference.document(myPhoneNumber).set(status);
         }
     }
+    public void removeStatusFromFireStore(){
+        List<String>phone_numbers=dataBase.getAllAuthorizedContacts(false);
+        CollectionReference statusCollectionReference;
+        String myPhoneNumber=UserSettings.PHONENUMBER;
+        for (String number:phone_numbers){
+            statusCollectionReference=profilesRef.document(number).collection("status");
+            statusCollectionReference.document(myPhoneNumber).delete();
+        }
+    }
     public void OnComplete(OnStatusUploadCompleteListener onStatusUploadCompleteListener) {
         this.onStatusUploadCompleteListener = onStatusUploadCompleteListener;
     }
     public interface OnStatusUploadCompleteListener{
-        void onUploadCompleteListener(String uri);
+        void onUploadCompleteListener(Status status);
     }
 
 }
