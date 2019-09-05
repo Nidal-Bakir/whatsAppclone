@@ -159,7 +159,7 @@ public class DataBase extends SQLiteOpenHelper {
         Profile_Status_img profileStatusImg = new Profile_Status_img(new ProfileImage(null, null)
                 , new Status(null, null, null));
         setDefaultUserInfo(UserSettings.UID, UserSettings.PHONENUMBER, profileStatusImg, db);
-        setDefaultUserInfo(new StatusPrivacyModel(UserSettings.UID, UserSettings.PHONENUMBER, "Me",true),db);
+        setDefaultUserInfo(new StatusPrivacyModel(UserSettings.UID, UserSettings.PHONENUMBER, "Me", true), db);
     }
 
     /**
@@ -206,17 +206,19 @@ public class DataBase extends SQLiteOpenHelper {
 
 
     }
-   private void setDefaultUserInfo(StatusPrivacyModel statusPrivacyModel,SQLiteDatabase db){
-       ContentValues contentValues = new ContentValues();
-       contentValues.put(PrivacyTable.UID, statusPrivacyModel.getUID());
-       contentValues.put(PrivacyTable.PHONE_NUMBER, statusPrivacyModel.getPhone_number());
-       contentValues.put(PrivacyTable.CONTACT_NAME, statusPrivacyModel.getContact_name());
-       contentValues.put(PrivacyTable.AUTHORIZED, statusPrivacyModel.isAuthorized());
-       db.insert(
-               PrivacyTable.TABLE_NAME
-               , null
-               , contentValues);
-   }
+
+    private void setDefaultUserInfo(StatusPrivacyModel statusPrivacyModel, SQLiteDatabase db) {
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(PrivacyTable.UID, statusPrivacyModel.getUID());
+        contentValues.put(PrivacyTable.PHONE_NUMBER, statusPrivacyModel.getPhone_number());
+        contentValues.put(PrivacyTable.CONTACT_NAME, statusPrivacyModel.getContact_name());
+        contentValues.put(PrivacyTable.AUTHORIZED, statusPrivacyModel.isAuthorized());
+        db.insert(
+                PrivacyTable.TABLE_NAME
+                , null
+                , contentValues);
+    }
+
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         //TOdo:get the UIDs of tables to delete them
@@ -239,8 +241,7 @@ public class DataBase extends SQLiteOpenHelper {
         cursor.moveToFirst();  //move to the element
         String imagePath = cursor.getString(cursor.getColumnIndex(ProfilesTable.IMAGE_PATH));
         String imageUrl = cursor.getString(cursor.getColumnIndex(ProfilesTable.IMAGE_URL));
-        // String statusPath = cursor.getString(cursor.getColumnIndex(Profiles_Status.STATUS_PATH));
-        // String statusUrl = cursor.getString(cursor.getColumnIndex(Profiles_Status.STATUS_URL));
+        cursor.close();
         return new ProfileImage(imagePath, imageUrl);
     }
 
@@ -259,6 +260,7 @@ public class DataBase extends SQLiteOpenHelper {
         String statusPath = cursor.getString(cursor.getColumnIndex(StatusTable.STATUS_PATH));
         String statusUrl = cursor.getString(cursor.getColumnIndex(StatusTable.STATUS_URL));
         String date = cursor.getString(cursor.getColumnIndex(StatusTable.DATE));
+        cursor.close();
         return new Status(statusPath, statusUrl, date);
     }
 
@@ -272,7 +274,7 @@ public class DataBase extends SQLiteOpenHelper {
                 , new String[]{""}
                 , null
                 , null
-                , null);
+                , StatusTable.DATE + " ASC");
         //check if the cursor is not null
         if (cursor.getCount() != EMPTYCURSOR)
             while (cursor.moveToNext()) {
@@ -294,6 +296,7 @@ public class DataBase extends SQLiteOpenHelper {
                     statusCollectionRef.document(phone_number).delete();
                 }
             }
+        cursor.close();
         return statusList;
     }
 
@@ -306,9 +309,12 @@ public class DataBase extends SQLiteOpenHelper {
                 , null
                 , null
                 , null);
-        if (cursor.getCount() == EMPTYCURSOR)
+        if (cursor.getCount() == EMPTYCURSOR) {
+            cursor.close();
             return false;
+        }
         // so the number saved in user contact and he know the number
+        cursor.close();
         return true;
     }
 
@@ -403,12 +409,12 @@ public class DataBase extends SQLiteOpenHelper {
                     , cursor.getString(cursor.getColumnIndex(ContactsTable.ONLINE_STATUS))
             );
         }
+        cursor.close();
         return null;
     }
 
     //get all contacts Who own an account
     public List<Contact_Profile> getAllContact() {
-
         database = this.getReadableDatabase();
         List<Contact_Profile> contact_profiles = new ArrayList<>();
         Cursor cursor = database.query(ContactsTable.TABLE_NAME
@@ -437,8 +443,10 @@ public class DataBase extends SQLiteOpenHelper {
                     , cursor.getString(cursor.getColumnIndex(ContactsTable.ONLINE_STATUS)));
             //add to list
             contact_profiles.add(new Contact_Profile(profileImage, contact));
-
+            ProfileCursor.close();
         }
+        cursor.close();
+
         return contact_profiles;
     }
 
@@ -446,7 +454,9 @@ public class DataBase extends SQLiteOpenHelper {
         database = this.getReadableDatabase();
         Cursor cursor = database.query(ContactsTable.TABLE_NAME
                 , null, null, null, null, null, null);
-        return (cursor.getCount() - 1) == EMPTYCURSOR;
+        boolean isEmpty = (cursor.getCount() - 1) == EMPTYCURSOR;
+        cursor.close();
+        return isEmpty;
     }
 
     public void addContact(Contact contact) {
@@ -481,7 +491,7 @@ public class DataBase extends SQLiteOpenHelper {
                 , new String[]{phone_number});
     }
 
-    public String getOnlineStatusForUser(String uid, String phone_number) {
+    public String getOnlineStateForUser(String uid, String phone_number) {
         Cursor cursor;
         //so i can search using UID OR phone number
         if (uid != null)
@@ -500,7 +510,9 @@ public class DataBase extends SQLiteOpenHelper {
         if (cursor.getCount() == EMPTYCURSOR)
             return null;
         cursor.moveToFirst();
-        return cursor.getString(cursor.getColumnIndex(ContactsTable.ONLINE_STATUS));
+        String onlineState = cursor.getString(cursor.getColumnIndex(ContactsTable.ONLINE_STATUS));
+        cursor.close();
+        return onlineState;
 
     }
 
@@ -570,7 +582,7 @@ public class DataBase extends SQLiteOpenHelper {
 
     public List<StatusPrivacyModel> getAllContactsInStatusPrivacy() {
         database = this.getReadableDatabase();
-        List<StatusPrivacyModel>privacyModelList=new ArrayList<>();
+        List<StatusPrivacyModel> privacyModelList = new ArrayList<>();
         boolean authorized;
         Cursor cursor = database.query(PrivacyTable.TABLE_NAME
                 , null
@@ -582,9 +594,7 @@ public class DataBase extends SQLiteOpenHelper {
         while (cursor.moveToNext()) {
             //if the authorized filed == 1 then the contact authorized
             // else the contact not authorized
-            if (cursor.getInt(cursor.getColumnIndex(PrivacyTable.AUTHORIZED)) == 1)
-                authorized = true;
-            else authorized = false;
+            authorized = cursor.getInt(cursor.getColumnIndex(PrivacyTable.AUTHORIZED)) == 1;
             StatusPrivacyModel statusPrivacyModel =
                     new StatusPrivacyModel(cursor.getString(cursor.getColumnIndex(PrivacyTable.UID))
                             , cursor.getString(cursor.getColumnIndex(PrivacyTable.PHONE_NUMBER))
@@ -592,7 +602,24 @@ public class DataBase extends SQLiteOpenHelper {
                             , authorized);
             privacyModelList.add(statusPrivacyModel);
         }
+        cursor.close();
         return privacyModelList;
     }
 
+    public List<String> getAllAuthorizedContacts() {
+        database = this.getReadableDatabase();
+        List<String> phone_numbers = new ArrayList<>();
+        Cursor cursor = database.query(PrivacyTable.TABLE_NAME
+                , new String[]{PrivacyTable.PHONE_NUMBER}
+                , PrivacyTable.AUTHORIZED + " = ?"
+                , new String[]{"1"}
+                , null
+                , null
+                , null);
+        while (cursor.moveToNext()) {
+            phone_numbers.add(cursor.getString(cursor.getColumnIndex(PrivacyTable.PHONE_NUMBER)));
+        }
+        cursor.close();
+        return phone_numbers;
+    }
 }

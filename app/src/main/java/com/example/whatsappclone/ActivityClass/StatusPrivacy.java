@@ -34,7 +34,7 @@ public class StatusPrivacy extends AppCompatActivity {
     private final int NOTAUTHORIZED = 0;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) throws IllegalStateException {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_status_privacy);
         toolbar = findViewById(R.id.statusPrivacyToolbar);

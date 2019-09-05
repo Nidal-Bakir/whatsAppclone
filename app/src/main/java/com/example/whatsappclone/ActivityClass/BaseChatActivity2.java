@@ -1,6 +1,7 @@
 package com.example.whatsappclone.ActivityClass;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -53,19 +54,11 @@ import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
-import com.google.firebase.storage.FirebaseStorage;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -81,6 +74,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private static final int WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 481;
     private static final int SEND_SMS_REQUEST_CODE = 124;
     private static final int IMAGE_CHOOSER_REQUEST_CODE = 476;
+    private static final int ADD_STATUS_REQUEST_CODE = 823;
     private TextView profilePhoneNumber;
     private CircleImageView profileImage;
     private UploadMedia uploadMedia;
@@ -91,6 +85,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
     // for attach listener on status collection
     private CollectionReference statusCollectionRef;
+    private StatusAdapter statusAdapter;
 
 
 
@@ -184,7 +179,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                         public void onCheckComplete(boolean isOnline) {
                             if (isOnline) {
                                 uploadMedia.uploadProfileImage(data.getData());
-                                uploadMedia.OnComplete(new UploadMedia.OnUploadCompleteListener() {
+                                uploadMedia.OnComplete(new UploadMedia.OnProfileUploadCompleteListener() {
                                     @Override
                                     public void onUploadCompleteListener(String uri) {
                                         //hide the progressBar
@@ -198,21 +193,54 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                             } else {
                                 profileProgressBar.setVisibility(View.GONE);
                                 //show an SnackBar to tell the user what want wrong
-                                View view = findViewById(R.id.chat_floating_bt);
-                                final Snackbar snackbar = Snackbar.make(view, "no internet connection!", Snackbar.LENGTH_LONG);
-                                snackbar.setAction("close", new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View v) {
-                                        snackbar.dismiss();
-                                    }
-                                });
-                                snackbar.show();
+                                showSnackBar();
                             }
                         }
                     });
                 }
                 break;
+            case ADD_STATUS_REQUEST_CODE:
+                if (resultCode == RESULT_OK){
+                    if (data==null)
+                        return;
+                    //check if the user connect to the internet
+                    InternetCheck internetCheck = new InternetCheck(this);
+                    internetCheck.execute();
+                    // this method will called when the check Completed because the check can not run
+                    // on UI THREAD
+                    internetCheck.onComplete(new InternetCheck.OnCheckComplete() {
+                        @Override
+                        public void onCheckComplete(boolean isOnline) {
+                            if (isOnline){
+                                uploadMedia.upLoadStatusImage(data.getData());
+                                uploadMedia.OnComplete(new UploadMedia.OnStatusUploadCompleteListener() {
+                                    @Override
+                                    public void onUploadCompleteListener(String uri) {
+                                        statusCollectionListener();
+                                        Log.d(TAG, "onUploadCompleteListener: "+"++********************************");
+                                    }
+                                });
+                            }else {
+                                //show an SnackBar to tell the user what want wrong
+                                showSnackBar();
+                            }
+                        }
+                    });
+
+                }
+                break;
         }
+    }
+    private void showSnackBar(){
+        View view = findViewById(R.id.chat_floating_bt);
+        final Snackbar snackbar = Snackbar.make(view, "no internet connection!", Snackbar.LENGTH_LONG);
+        snackbar.setAction("close", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                snackbar.dismiss();
+            }
+        });
+        snackbar.show();
     }
 
     @Override
@@ -308,14 +336,17 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         statusList = dataBase.getAllStatus(); //get all status from DataBase
         statusRecyclerView = findViewById(R.id.StatusRecyclerView);
         statusRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        final StatusAdapter statusAdapter = new StatusAdapter(this, statusList);
+          statusAdapter = new StatusAdapter(this, statusList);
         statusRecyclerView.setAdapter(statusAdapter);
         // when user click add status item
         statusAdapter.onAddStatus(new StatusAdapter.OnAddStatusListener() {
             @Override
             public void onAddStatusListener() {
-                //TODo: open the chooser and upload the image
-                Toast.makeText(BaseChatActivity2.this, "add status", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent();
+                intent.setType("image/*");
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(intent, "select avatar"), ADD_STATUS_REQUEST_CODE);
+
             }
         });
         // when user click on normal status item
@@ -326,6 +357,9 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 Toast.makeText(BaseChatActivity2.this, "normal item", Toast.LENGTH_SHORT).show();
             }
         });
+        statusCollectionListener();
+    }
+    public void statusCollectionListener(){
         //start listening for changing on status collection
         statusCollectionRef.addSnapshotListener(this, new EventListener<QuerySnapshot>() {
             @Override
@@ -344,7 +378,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                             status.setPhone_number(phone_number);
                             // check the number
                             if (dataBase.isNumberAFriend(phone_number)) {
-                                statusAdapter.addStatusTolist(status);
+                                statusAdapter.addStatusToList(status);
                                 dataBase.upDateStatusImage(null, phone_number, status);
                             }
                             break;
@@ -361,8 +395,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                                 status = documentChange.getDocument().toObject(Status.class);
                                 status.setPhone_number(phone_number);
                                 dataBase.upDateStatusImage(null, phone_number, status);
-                                statusAdapter.removeStatusFromList(phone_number);
-                                statusAdapter.addStatusTolist(status);
+                                statusAdapter.addStatusToList(status);
                             }
                             break;
                     }
@@ -372,7 +405,6 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             }
         });
     }
-
 
     private void AskForPermissions() {
         if (Build.VERSION.SDK_INT > 23) {

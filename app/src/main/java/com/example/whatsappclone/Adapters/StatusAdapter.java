@@ -35,14 +35,35 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         dataBase = new DataBase(context);
     }
 
-    public void addStatusTolist(Status status) {
-        statuses.add(status);
-        this.notifyItemInserted(statuses.size()-1);
+    public void addStatusToList(Status status) {
+//        Iterator<Status>iterator=statuses.iterator();
+//        while (iterator.hasNext()){
+//            Status statusiterator=iterator.next();
+//            if (statusiterator.getPhone_number().equals(status.getPhone_number()))
+//
+//        }
+        for (int i = 0; i < statuses.size(); i++) {
+            if (statuses.get(i).getPhone_number().equals(status.getPhone_number()))
+                if (statuses.get(i).getStatusUrl().equals(status.getStatusUrl()))
+                    return;
+                else {
+                    statuses.set(i,status);
+                    notifyDataSetChanged();
+                    return;
+                }
+        }
+        if (status.getPhone_number().equals(UserSettings.PHONENUMBER)) {
+            statuses.add(0, status);
+            this.notifyItemInserted(0);
+        } else {
+            statuses.add(status);
+            this.notifyItemInserted(statuses.size() - 1);
+        }
     }
 
     public void removeStatusFromList(String phone_number) {
         Iterator<Status> iterator = statuses.iterator();
-            for (int i=0;iterator.hasNext();i++) {
+        for (int i = 0; iterator.hasNext(); i++) {
             Status status = iterator.next();
             if (status.getPhone_number().equals(phone_number)) {
                 iterator.remove();
@@ -96,18 +117,17 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             // handle if the status is my status
             if (statuses.get(position - 1).getPhone_number().equals(MY_STATUS)) {
                 normalStatus.ownerName.setText("Your status");
-
                 Glide.with(context)
-                        .load(dataBase.getUserProfile(UserSettings.UID))
+                        .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
                         .error(R.drawable.ic_default_avatar_profile)
-                        .into(((Normal_status) holder).ownerImg);
+                        .into(normalStatus.ownerImg);
 
             } else {
                 // other status item
                 Glide.with(context)
-                        .load(dataBase.getUserProfile(statuses.get(position - 1).getPhone_number()))
+                        .load(dataBase.getUserProfile(statuses.get(position - 1).getPhone_number()).getImageUrl())
                         .error(R.drawable.ic_default_avatar_profile)
-                        .into(((Normal_status) holder).ownerImg);
+                        .into(normalStatus.ownerImg);
 
                 normalStatus.ownerName.setText(
                         dataBase.getContact(statuses.get(position - 1).getPhone_number()
