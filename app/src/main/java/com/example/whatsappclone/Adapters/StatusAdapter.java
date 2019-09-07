@@ -105,7 +105,7 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, final int position) {
         if (holder instanceof Normal_status) {
-            Normal_status normalStatus = (Normal_status) holder;
+            final Normal_status normalStatus = (Normal_status) holder;
             Glide.with(context)
                     .load(statuses.get(position - 1).getStatusUrl())
                     .error(R.drawable.ic_default_avatar_profile)
@@ -124,19 +124,14 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
             } else {
                 // other status item
-                Glide.with(context)
-                        .load(dataBase.getUserProfile(statuses.get(position - 1).getPhone_number()).getImageUrl())
-                        .error(R.drawable.ic_default_avatar_profile)
-                        .into(normalStatus.ownerImg);
-
                 normalStatus.ownerName.setText(
-                        dataBase.getContact(statuses.get(position - 1).getPhone_number()
-                                , null).getContact_name());
+                        dataBase.getContact(null
+                                , statuses.get(position - 1).getPhone_number()).getContact_name());
             }
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    onStatusItemClickListener.onStatusItemClickListener(statuses.get(position - 1).getStatusUrl());
+                    onStatusItemClickListener.onStatusItemClickListener(statuses.get(position - 1));
                 }
             });
 
@@ -157,7 +152,7 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     }
 
     public interface OnStatusItemClickListener {
-        void onStatusItemClickListener(String url);
+        void onStatusItemClickListener(Status status);
     }
 
     // handel add status event

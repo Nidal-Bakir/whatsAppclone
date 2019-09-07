@@ -12,6 +12,7 @@ import android.os.Bundle;
 
 import com.bumptech.glide.Glide;
 import com.example.whatsappclone.Adapters.StatusAdapter;
+import com.example.whatsappclone.AssistanceClass.OnSwipeListener;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
@@ -22,10 +23,12 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
@@ -40,6 +43,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -86,7 +91,8 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     // for attach listener on status collection
     private CollectionReference statusCollectionRef;
     private StatusAdapter statusAdapter;
-
+    FragmentManager fragmentManager;
+    FragmentTransaction fragmentTransaction;
 
 
     @Override
@@ -200,8 +206,8 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 }
                 break;
             case ADD_STATUS_REQUEST_CODE:
-                if (resultCode == RESULT_OK){
-                    if (data==null)
+                if (resultCode == RESULT_OK) {
+                    if (data == null)
                         return;
                     //check if the user connect to the internet
                     InternetCheck internetCheck = new InternetCheck(this);
@@ -211,9 +217,9 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                     internetCheck.onComplete(new InternetCheck.OnCheckComplete() {
                         @Override
                         public void onCheckComplete(boolean isOnline) {
-                            if (isOnline){
+                            if (isOnline) {
                                 //to show the user that the status upload is in progress
-                                Status myStatus=new Status("whatever",data.getData().toString(),"whatever");
+                                Status myStatus = new Status("whatever", data.getData().toString(), "whatever");
                                 myStatus.setShowProgressBar(true);
                                 myStatus.setPhone_number(UserSettings.PHONENUMBER);
                                 statusAdapter.addStatusToList(myStatus);
@@ -226,7 +232,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                                         statusCollectionListener();
                                     }
                                 });
-                            }else {
+                            } else {
                                 //show an SnackBar to tell the user what want wrong
                                 showSnackBar();
                             }
@@ -237,7 +243,8 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 break;
         }
     }
-    private void showSnackBar(){
+
+    private void showSnackBar() {
         View view = findViewById(R.id.chat_floating_bt);
         final Snackbar snackbar = Snackbar.make(view, "no internet connection!", Snackbar.LENGTH_LONG);
         snackbar.setAction("close", new View.OnClickListener() {
@@ -335,14 +342,15 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 }
             });
 
-    }
+        }
 
     }
-    public void statusInit(){
+
+    public void statusInit() {
         statusList = dataBase.getAllStatus(); //get all status from DataBase
         statusRecyclerView = findViewById(R.id.StatusRecyclerView);
         statusRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-          statusAdapter = new StatusAdapter(this, statusList);
+        statusAdapter = new StatusAdapter(this, statusList);
         statusRecyclerView.setAdapter(statusAdapter);
         // when user click add status item
         statusAdapter.onAddStatus(new StatusAdapter.OnAddStatusListener() {
@@ -358,14 +366,31 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         // when user click on normal status item
         statusAdapter.onStatusClick(new StatusAdapter.OnStatusItemClickListener() {
             @Override
-            public void onStatusItemClickListener(String url) {
-                //TODO ::open the image in new activity or fragment !!!
-                Toast.makeText(BaseChatActivity2.this, "normal item", Toast.LENGTH_SHORT).show();
+            public void onStatusItemClickListener(Status status) {
+                StatusViewer statusViewer = StatusViewer.newInstance(status);
+                fragmentManager = getSupportFragmentManager();
+                fragmentTransaction = fragmentManager.beginTransaction();
+                fragmentTransaction.addToBackStack("viewer");
+                fragmentTransaction.add(R.id.drawer_layout, statusViewer);
+                fragmentTransaction.commit();
+                statusViewer.onclick(new StatusViewer.OnFragmentInteractionListener() {
+                    @Override
+                    public void onFragmentInteraction(CardView viewedList, OnSwipeListener.Direction direction) {
+                        if (direction == OnSwipeListener.Direction.up)
+                            viewedList.animate().translationY(0).setDuration(250).start();
+
+                        else {
+                            int px=(int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,350,getApplicationContext().getResources().getDisplayMetrics());
+                            viewedList.animate().translationY(px).setDuration(200).start();
+                        }
+                    }
+                });
             }
         });
         statusCollectionListener();
     }
-    public void statusCollectionListener(){
+
+    public void statusCollectionListener() {
         //start listening for changing on status collection
         statusCollectionRef.addSnapshotListener(this, new EventListener<QuerySnapshot>() {
             @Override
@@ -476,7 +501,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             finish();
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
         }
-        dataBase=new DataBase(this);
+        dataBase = new DataBase(this);
     }
 
     @Override
@@ -487,10 +512,13 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
     @Override
     public void onBackPressed() {
+
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
-        } else {
+        } else if (fragmentManager.getBackStackEntryCount() > 0)
+            fragmentManager.popBackStackImmediate();
+        else {
             dataBase.close();
             super.onBackPressed();
         }
@@ -522,12 +550,12 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks.
-        switch (item.getItemId()){
+        switch (item.getItemId()) {
             case R.id.nav_newGroup:
                 //ToDO:handel the new group action
                 break;
             case R.id.status_privacy:
-                startActivity(new Intent(BaseChatActivity2.this,StatusPrivacy.class));
+                startActivity(new Intent(BaseChatActivity2.this, StatusPrivacy.class));
                 break;
             case R.id.nav_contacts:
                 startActivity(new Intent(BaseChatActivity2.this, ContactsActivity.class));
@@ -541,7 +569,6 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
 
         }
-
 
 
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
