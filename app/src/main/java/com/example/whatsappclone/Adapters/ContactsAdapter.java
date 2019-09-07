@@ -46,7 +46,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ViewHo
         Glide.with(context)
                 .load(contact_profiles.get(position).getProfileImage().getImageUrl())
                 .error(Glide.with(context).load(R.drawable.ic_default_avatar_profile))
-                .into(holder.image);
+                .into(holder.profileImage);
         holder.name.setText(contact_profiles.get(position).getContact().getContact_name());
 
     }
@@ -57,13 +57,13 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ViewHo
     }
 
     protected class ViewHolder extends RecyclerView.ViewHolder {
-        CircleImageView image;
+        CircleImageView profileImage;
         TextView name;
         ConstraintLayout layout;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            image = itemView.findViewById(R.id.contact_profile);
+            profileImage = itemView.findViewById(R.id.contact_profile);
             name = itemView.findViewById(R.id.contact_name);
             layout = itemView.findViewById(R.id.item);
             layout.setOnClickListener(new View.OnClickListener() {

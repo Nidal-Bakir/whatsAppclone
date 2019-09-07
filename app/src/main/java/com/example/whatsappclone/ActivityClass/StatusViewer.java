@@ -8,6 +8,7 @@ import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.util.Log;
@@ -24,10 +25,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.example.whatsappclone.Adapters.VisitStatusAdapter;
 import com.example.whatsappclone.AssistanceClass.OnSwipeListener;
 import com.example.whatsappclone.R;
+import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.Status;
+import com.example.whatsappclone.WhatsApp_Models.VisitStatus;
 import com.google.gson.Gson;
 
 import java.util.List;
@@ -44,7 +48,8 @@ public class StatusViewer extends Fragment implements View.OnTouchListener {
     private ImageButton deleteStatus;
     private ImageView imageView;
     private ConstraintLayout viewer_layout;
-    GestureDetector gestureDetector;
+    private GestureDetector gestureDetector;
+    private DataBase dataBase;
 
     public StatusViewer() {
         // Required empty public constructor
@@ -83,6 +88,7 @@ public class StatusViewer extends Fragment implements View.OnTouchListener {
         deleteStatus=view.findViewById(R.id.deleteStatus);
         viewedCount=view.findViewById(R.id.viewedCount);
         listContainer=view.findViewById(R.id.viewer_CardView);
+        dataBase=new DataBase(getContext());
         TextView swipeUpTextView=view.findViewById(R.id.swipeUpTextView);
         Glide.with(this)
                 .load(status.getStatusUrl())
@@ -96,20 +102,32 @@ public class StatusViewer extends Fragment implements View.OnTouchListener {
                 public boolean onSwipe(Direction direction) {
                     if (direction == Direction.up) {
                         //show list of contact how see the user status
-                        mListener.onFragmentInteraction(listContainer, Direction.up);
+                        mListener.onFragmentIGestureDetector(listContainer, Direction.up);
                     }
                     if (direction == Direction.down) {
                         // hide the list
-                        mListener.onFragmentInteraction(listContainer, Direction.down);
+                        mListener.onFragmentIGestureDetector(listContainer, Direction.down);
                     }
                     return true;
                 }
             });
+            deleteStatus.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mListener.onDeleteButtonClickListener();
+                }
+            });
+            // init the list of visits
+            List<VisitStatus>visitStatusList=dataBase.getAllVisits();
+            VisitStatusAdapter visitStatusAdapter=new VisitStatusAdapter(getContext(),visitStatusList);
+            recyclerView.setLayoutManager(new LinearLayoutManager(getContext(),RecyclerView.VERTICAL, false));
+            recyclerView.setAdapter(visitStatusAdapter);
+            viewedCount.setText("Viewed by "+visitStatusList.size() +" contacts");
         }
         return view;
     }
 
-    public void onclick(OnFragmentInteractionListener onFragmentInteractionListener) {
+    public void onActionHandler(OnFragmentInteractionListener onFragmentInteractionListener) {
         this.mListener = onFragmentInteractionListener;
     }
 
@@ -135,6 +153,7 @@ public class StatusViewer extends Fragment implements View.OnTouchListener {
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      */
     public interface OnFragmentInteractionListener {
-        void onFragmentInteraction(CardView viewedList, OnSwipeListener.Direction direction);
+        void onFragmentIGestureDetector(CardView viewedList, OnSwipeListener.Direction direction);
+        void onDeleteButtonClickListener();
     }
 }

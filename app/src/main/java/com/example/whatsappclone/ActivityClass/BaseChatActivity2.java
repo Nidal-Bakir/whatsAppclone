@@ -1,7 +1,6 @@
 package com.example.whatsappclone.ActivityClass;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -19,6 +18,9 @@ import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
 import com.example.whatsappclone.WhatsAppFireStore.UploadMedia;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.Status;
+import com.example.whatsappclone.WhatsApp_Models.VisitStatus;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import android.telephony.TelephonyManager;
@@ -56,14 +58,18 @@ import android.widget.Toast;
 import com.facebook.stetho.Stetho;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -90,9 +96,13 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private FirebaseFirestore firestore = FirebaseFirestore.getInstance();
     // for attach listener on status collection
     private CollectionReference statusCollectionRef;
+    //to send message that the user has visited his/her story
+    private CollectionReference storyVisitRef;
+    // to attach listener on Visit status collection then i know how visited my story
+    private CollectionReference myStoryVisitRef;
     private StatusAdapter statusAdapter;
-    FragmentManager fragmentManager;
-    FragmentTransaction fragmentTransaction;
+    private FragmentManager fragmentManager = null;
+    private FragmentTransaction fragmentTransaction;
 
 
     @Override
@@ -229,6 +239,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                                     @Override
                                     public void onUploadCompleteListener(Status status) {
                                         statusAdapter.addStatusToList(status);
+                                        dataBase.deleteAllVisits();
                                         statusCollectionListener();
                                     }
                                 });
@@ -334,11 +345,13 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 public void onFinish(List<DataBase.Contact_Profile> contact_profiles) {
                     //set the profile image from DB
                     Glide.with(getApplicationContext())
-                            .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
+                            .load(dataBase.getUserProfile(UserSettings.UID,null).getImageUrl())
                             .error(R.drawable.ic_default_avatar_profile)//set the default image if the user delete the profile image or something  went wrong
                             .into(profileImage);
                     // status init
                     statusInit();
+
+
                 }
             });
 
@@ -366,26 +379,58 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         // when user click on normal status item
         statusAdapter.onStatusClick(new StatusAdapter.OnStatusItemClickListener() {
             @Override
-            public void onStatusItemClickListener(Status status) {
+            public void onStatusItemClickListener(final Status status) {
                 StatusViewer statusViewer = StatusViewer.newInstance(status);
                 fragmentManager = getSupportFragmentManager();
                 fragmentTransaction = fragmentManager.beginTransaction();
                 fragmentTransaction.addToBackStack("viewer");
                 fragmentTransaction.add(R.id.drawer_layout, statusViewer);
                 fragmentTransaction.commit();
-                statusViewer.onclick(new StatusViewer.OnFragmentInteractionListener() {
+                statusViewer.onActionHandler(new StatusViewer.OnFragmentInteractionListener() {
                     @Override
-                    public void onFragmentInteraction(CardView viewedList, OnSwipeListener.Direction direction) {
+                    public void onFragmentIGestureDetector(CardView viewedList, OnSwipeListener.Direction direction) {
                         if (direction == OnSwipeListener.Direction.up)
                             viewedList.animate().translationY(0).setDuration(250).start();
 
                         else {
-                            int px=(int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,350,getApplicationContext().getResources().getDisplayMetrics());
+                            int px = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 350, getApplicationContext().getResources().getDisplayMetrics());
                             viewedList.animate().translationY(px).setDuration(200).start();
                         }
                     }
+
+                    @Override
+                    public void onDeleteButtonClickListener() {
+                        onBackPressed();// to close the fragment
+                        uploadMedia.removeStatusFromFireStore();
+                        statusAdapter.removeStatusFromList(UserSettings.PHONENUMBER);
+                        dataBase.deleteAllVisits();
+                    }
                 });
+                // send notification that the user has open the status
+                if (!status.getPhone_number().equals(UserSettings.PHONENUMBER)) {
+
+                    final String time = new SimpleDateFormat("h:mm a").format(new Date());
+                    /*get the other user story and compare the uploading time if it's the same
+                     * then send message that you are visit his/her story
+                     * */
+                    statusCollectionRef.document(status.getPhone_number())
+                            .get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                            if (task.isSuccessful()) {
+                                Status otherUserStatus = task.getResult().toObject(Status.class);
+                                if (otherUserStatus.getDate().equals(status.getDate()))
+                                    storyVisitRef = firestore.collection("profile")
+                                            .document(status.getPhone_number()).collection("visitStatus");
+                                //send the message
+                                storyVisitRef.document(UserSettings.PHONENUMBER).set(new VisitStatus(time));
+
+                            }
+                        }
+                    });
+                }
             }
+
         });
         statusCollectionListener();
     }
@@ -431,10 +476,31 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                             break;
                     }
                 }
-
+            }
+        });
+        //start listening for changing on [visit] status collection
+        myStoryVisitRef = firestore.collection("profile")
+                .document(UserSettings.PHONENUMBER).collection("visitStatus");
+        myStoryVisitRef.orderBy("time", Query.Direction.DESCENDING).addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@javax.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @javax.annotation.Nullable FirebaseFirestoreException e) {
+                if (e != null) {
+                    Log.w(TAG, "onEvent: ", e);
+                    return;
+                }
+                for (DocumentChange documentChange : queryDocumentSnapshots.getDocumentChanges()) {
+                    switch (documentChange.getType()) {
+                        case ADDED:
+                            VisitStatus visitStatus = documentChange.getDocument().toObject(VisitStatus.class);
+                            visitStatus.setPhone_number(documentChange.getDocument().getId());
+                            dataBase.addVisit(visitStatus);
+                            break;
+                    }
+                }
 
             }
         });
+
     }
 
     private void AskForPermissions() {
@@ -516,13 +582,16 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
-        } else if (fragmentManager.getBackStackEntryCount() > 0)
-            fragmentManager.popBackStackImmediate();
-        else {
-            dataBase.close();
-            super.onBackPressed();
+        } else if (fragmentManager != null) {
+            if (fragmentManager.getBackStackEntryCount() > 0)
+                fragmentManager.popBackStackImmediate();
+            else {
+                dataBase.close();
+                super.onBackPressed();
+            }
         }
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

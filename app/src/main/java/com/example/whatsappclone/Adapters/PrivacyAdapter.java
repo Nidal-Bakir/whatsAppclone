@@ -73,7 +73,7 @@ public class PrivacyAdapter extends RecyclerView.Adapter<PrivacyAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, final int position) {
         Glide.with(context)
-                .load(dataBase.getUserProfile(statusPrivacyList.get(position).getUID()))
+                .load(dataBase.getUserProfile(statusPrivacyList.get(position).getUID(),null))
                 .error(R.drawable.ic_default_avatar_profile)
                 .into(holder.image);
         holder.name.setText(statusPrivacyList.get(position).getContact_name());

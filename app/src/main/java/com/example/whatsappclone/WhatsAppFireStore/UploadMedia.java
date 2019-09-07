@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.example.whatsappclone.WhatsApp_Models.Status;
+import com.example.whatsappclone.WhatsApp_Models.VisitStatus;
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -80,6 +81,7 @@ public class UploadMedia {
             }
         });
     }
+
     public void OnComplete(OnProfileUploadCompleteListener onProfileUploadCompleteListener) {
         this.onProfileUploadCompleteListener = onProfileUploadCompleteListener;
     }
@@ -87,7 +89,8 @@ public class UploadMedia {
     public interface OnProfileUploadCompleteListener {
         void onUploadCompleteListener(String uri);
     }
-    public void upLoadStatusImage(Uri statusUri){
+
+    public void upLoadStatusImage(Uri statusUri) {
         // ref for status folder => image as name (status.png/.jpg)
         final StorageReference statusStorageReference = userStorageReference.child("status").child("status");
         statusStorageReference.delete(); //remove the image and replace it
@@ -102,15 +105,15 @@ public class UploadMedia {
         }).addOnCompleteListener(new OnCompleteListener<Uri>() {
             @Override
             public void onComplete(@NonNull Task<Uri> task) {
-                Calendar calendar=Calendar.getInstance();
-                String uploadTime=String.valueOf(calendar.getTimeInMillis());
+                Calendar calendar = Calendar.getInstance();
+                String uploadTime = String.valueOf(calendar.getTimeInMillis());
                 //image url for download
                 Uri statusUri = task.getResult();
                 //path of image
                 String statusPath = statusStorageReference.getPath();
-                Status status=new Status(statusPath,statusUri.toString(),uploadTime);
+                Status status = new Status(statusPath, statusUri.toString(), uploadTime);
                 //add the data to Table
-                dataBase.upDateStatusImage(UserSettings.UID,null,status);
+                dataBase.upDateStatusImage(UserSettings.UID, null, status);
                 // upDate the data in fireStore (user profile)
                 profileDocRef.update("status", status);
                 //send the status to users
@@ -125,29 +128,39 @@ public class UploadMedia {
             }
         });
     }
-    private void sendStatus(Status status){
+
+    private void sendStatus(Status status) {
         removeStatusFromFireStore();
-        List<String>phone_numbers=dataBase.getAllAuthorizedContacts(true);
-        String myPhoneNumber=UserSettings.PHONENUMBER;
+        List<String> phone_numbers = dataBase.getAllAuthorizedContacts(true);
+        String myPhoneNumber = UserSettings.PHONENUMBER;
         CollectionReference statusCollectionReference;
-        for (String number:phone_numbers){
-            statusCollectionReference=profilesRef.document(number).collection("status");
+        for (String number : phone_numbers) {
+            statusCollectionReference = profilesRef.document(number).collection("status");
             statusCollectionReference.document(myPhoneNumber).set(status);
         }
     }
-    public void removeStatusFromFireStore(){
-        List<String>phone_numbers=dataBase.getAllAuthorizedContacts(false);
+
+    public void removeStatusFromFireStore() {
+        CollectionReference myStoryVisitRef = firestore.collection("profile")
+                .document(UserSettings.PHONENUMBER).collection("visitStatus");
+        List<VisitStatus> visitStatusList = dataBase.getAllVisits();
+        for (VisitStatus visitStatus : visitStatusList)
+            myStoryVisitRef.document(visitStatus.getPhone_number()).delete();
+
+        List<String> phone_numbers = dataBase.getAllAuthorizedContacts(false);
         CollectionReference statusCollectionReference;
-        String myPhoneNumber=UserSettings.PHONENUMBER;
-        for (String number:phone_numbers){
-            statusCollectionReference=profilesRef.document(number).collection("status");
+        String myPhoneNumber = UserSettings.PHONENUMBER;
+        for (String number : phone_numbers) {
+            statusCollectionReference = profilesRef.document(number).collection("status");
             statusCollectionReference.document(myPhoneNumber).delete();
         }
     }
+
     public void OnComplete(OnStatusUploadCompleteListener onStatusUploadCompleteListener) {
         this.onStatusUploadCompleteListener = onStatusUploadCompleteListener;
     }
-    public interface OnStatusUploadCompleteListener{
+
+    public interface OnStatusUploadCompleteListener {
         void onUploadCompleteListener(Status status);
     }
 

@@ -16,6 +16,7 @@ import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
 import com.example.whatsappclone.WhatsApp_Models.Status;
 import com.example.whatsappclone.WhatsApp_Models.StatusPrivacyModel;
+import com.example.whatsappclone.WhatsApp_Models.VisitStatus;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -127,6 +128,7 @@ public class DataBase extends SQLiteOpenHelper {
         }
     }
 
+    //status privacy table
     private class PrivacyTable implements BaseColumns {
         private static final String TABLE_NAME = "statusPrivacy";
         private static final String UID = "uid";
@@ -144,6 +146,22 @@ public class DataBase extends SQLiteOpenHelper {
                     + PrivacyTable.AUTHORIZED + " INTEGER" // for true or false (1 OR 0)
                     + ")";
 
+    // Status visit table
+    private class StatusVisit implements BaseColumns {
+        private static final String TABLE_NAME = "status_visit";
+        private static final String ID = "id";
+        private static final String PHONE_NUMBER = "phone_number";
+        private static final String TIME = "time";
+    }
+
+    private static final String SQL_CREATE_STATUS_VISIT_TABLE =
+            "CREATE TABLE " + StatusVisit.TABLE_NAME
+                    + " ("
+                    + StatusVisit.ID + " INTEGER PRIMARY KEY,"
+                    + StatusVisit.PHONE_NUMBER + " TEXT,"
+                    + StatusVisit.TIME + " TEXT "
+                    + ")";
+
     public DataBase(@Nullable Context context) {
         super(context, DB_NAME, null, 1);
     }
@@ -154,6 +172,7 @@ public class DataBase extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_STATUS_IMG);
         db.execSQL(SQL_CREATE_CONTACTS_TABLE);
         db.execSQL(SQL_CREATE_STATUS_PRIVACY_TABLE);
+        db.execSQL(SQL_CREATE_STATUS_VISIT_TABLE);
         //add user info to database the def info
         setDefaultUserInfo(new Contact(UserSettings.UID, UserSettings.PHONENUMBER, "Me", "online"), db);
         Profile_Status_img profileStatusImg = new Profile_Status_img(new ProfileImage(null, null)
@@ -227,15 +246,25 @@ public class DataBase extends SQLiteOpenHelper {
     }
 
     //this function will get the image for profile
-    public ProfileImage getUserProfile(String UID) {
+    public ProfileImage getUserProfile(String UID,String phone_number) {
         database = this.getReadableDatabase();
-        Cursor cursor = database.query(ProfilesTable.TABLE_NAME
+        Cursor cursor;
+        if (UID!=null)
+         cursor = database.query(ProfilesTable.TABLE_NAME
                 , null
                 , ProfilesTable.UID + " = ? "
                 , new String[]{UID}
                 , null
                 , null
                 , null);
+        else
+            cursor = database.query(ProfilesTable.TABLE_NAME
+                    , null
+                    , ProfilesTable.PHONE_NUMBER + " = ? "
+                    , new String[]{phone_number}
+                    , null
+                    , null
+                    , null);
         if (cursor.getCount() == EMPTYCURSOR)
             return null;
         cursor.moveToFirst();  //move to the element
@@ -274,7 +303,7 @@ public class DataBase extends SQLiteOpenHelper {
                 , new String[]{""}
                 , null
                 , null
-                , StatusTable.DATE + " ASC");
+                , StatusTable.DATE + " DESC");
         //check if the cursor is not null
         if (cursor.getCount() != EMPTYCURSOR)
             while (cursor.moveToNext()) {
@@ -630,5 +659,51 @@ public class DataBase extends SQLiteOpenHelper {
         }
         cursor.close();
         return phone_numbers;
+    }
+
+    public void addVisit(VisitStatus visitStatus) {
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(StatusVisit.PHONE_NUMBER, visitStatus.getPhone_number());
+        contentValues.put(StatusVisit.TIME, visitStatus.getTime());
+        Cursor cursor =
+                database.query(StatusVisit.TABLE_NAME
+                        , null
+                        , StatusVisit.PHONE_NUMBER + " =?"
+                        , new String[]{visitStatus.getPhone_number()}
+                        ,null
+                        ,null
+                        ,null);
+        if (cursor.getCount()==EMPTYCURSOR)
+        database.insert(StatusVisit.TABLE_NAME
+                , null
+                , contentValues);
+        cursor.close();
+
+    }
+
+    public List<VisitStatus> getAllVisits() {
+        database = this.getReadableDatabase();
+        VisitStatus visitStatus;
+        List<VisitStatus> statusVisitList = new ArrayList<>();
+        Cursor cursor =
+                database.query(StatusVisit.TABLE_NAME
+                        , new String[]{StatusVisit.PHONE_NUMBER, StatusVisit.TIME}
+                        , null
+                        , null
+                        , null
+                        , null
+                        , StatusVisit.ID + " DESC");
+        while (cursor.moveToNext()) {
+            visitStatus = new VisitStatus(cursor.getString(cursor.getColumnIndex(StatusVisit.TIME)));
+            visitStatus.setPhone_number(cursor.getString(cursor.getColumnIndex(StatusVisit.PHONE_NUMBER)));
+            statusVisitList.add(visitStatus);
+        }
+        cursor.close();
+        return statusVisitList;
+    }
+    public void deleteAllVisits(){
+        database=this.getWritableDatabase();
+        database.delete(StatusVisit.TABLE_NAME,null,null);
     }
 }

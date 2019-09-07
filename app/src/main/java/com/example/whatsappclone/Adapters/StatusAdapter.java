@@ -45,7 +45,8 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                     return;
                 else {
                     statuses.set(i,status);
-                    notifyDataSetChanged();
+                    //notifyDataSetChanged();
+                    notifyItemChanged(i+1);
                     return;
                 }
         }
@@ -54,7 +55,7 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             this.notifyItemInserted(0);
         } else {
             statuses.add(status);
-            this.notifyItemInserted(statuses.size() - 1);
+            this.notifyItemInserted(statuses.size() );
         }
     }
 
@@ -64,7 +65,7 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             Status status = iterator.next();
             if (status.getPhone_number().equals(phone_number)) {
                 iterator.remove();
-                this.notifyItemRemoved(i);
+                this.notifyItemRemoved(i+1);
                 break;
             }
         }
@@ -103,35 +104,36 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     }
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, final int position) {
+    public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, final int position) {
+
         if (holder instanceof Normal_status) {
             final Normal_status normalStatus = (Normal_status) holder;
             Glide.with(context)
-                    .load(statuses.get(position - 1).getStatusUrl())
+                    .load(statuses.get(holder.getAdapterPosition() - 1).getStatusUrl())
                     .error(R.drawable.ic_default_avatar_profile)
                     .into(normalStatus.status);
                     // so the user can see that his store is uploading (in progress)
-                    if (statuses.get(position-1).isShowProgressBar())
+                    if (statuses.get(holder.getAdapterPosition()-1).isShowProgressBar())
                         normalStatus.uploadProgress.setVisibility(View.VISIBLE);
                     else  normalStatus.uploadProgress.setVisibility(View.GONE);
             // handle if the status is my status
-            if (statuses.get(position - 1).getPhone_number().equals(MY_STATUS)) {
+            if (statuses.get(holder.getAdapterPosition() - 1).getPhone_number().equals(MY_STATUS)) {
                 normalStatus.ownerName.setText("Your status");
-                Glide.with(context)
-                        .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
-                        .error(R.drawable.ic_default_avatar_profile)
-                        .into(normalStatus.ownerImg);
+//                Glide.with(context)
+//                        .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
+//                        .error(R.drawable.ic_default_avatar_profile)
+//                        .into(normalStatus.ownerImg);
 
             } else {
                 // other status item
                 normalStatus.ownerName.setText(
                         dataBase.getContact(null
-                                , statuses.get(position - 1).getPhone_number()).getContact_name());
+                                , statuses.get(holder.getAdapterPosition() - 1).getPhone_number()).getContact_name());
             }
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    onStatusItemClickListener.onStatusItemClickListener(statuses.get(position - 1));
+                    onStatusItemClickListener.onStatusItemClickListener(statuses.get(holder.getAdapterPosition() - 1));
                 }
             });
 
@@ -166,14 +168,14 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
 
     private class Normal_status extends RecyclerView.ViewHolder {
-        CircleImageView ownerImg;
+        //CircleImageView ownerImg;
         CircleImageView status;
         TextView ownerName;
         ProgressBar uploadProgress;
 
         public Normal_status(@NonNull View itemView) {
             super(itemView);
-            ownerImg = itemView.findViewById(R.id.status_img_owner);
+            //ownerImg = itemView.findViewById(R.id.status_img_owner);
             ownerName = itemView.findViewById(R.id.status_owner);
             status = itemView.findViewById(R.id.status_img);
             uploadProgress=itemView.findViewById(R.id.uploadprogress);
