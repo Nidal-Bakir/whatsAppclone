@@ -1,4 +1,4 @@
-package com.example.whatsappclone.ActivityClass;
+package com.example.whatsappclone.AssistanceClass;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
@@ -6,7 +6,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 import java.io.IOException;
 
-class InternetCheck extends AsyncTask<Void,Void,Boolean> {
+public class InternetCheck extends AsyncTask<Void,Void,Boolean> {
     private static final String TAG = "InternetCheck";
     private OnCheckComplete onCheckComplete;
     private Context context;
@@ -43,12 +43,12 @@ class InternetCheck extends AsyncTask<Void,Void,Boolean> {
 
 
     @Override
-    protected Boolean doInBackground(Void... voids) {
+    public Boolean doInBackground(Void... voids) {
         return checkInternetConnection(context);
     }
 
     @Override
-    protected void onPostExecute(Boolean aBoolean) {
+    public void onPostExecute(Boolean aBoolean) {
        onCheckComplete.onCheckComplete(aBoolean);
     }
     public void onComplete(OnCheckComplete onCheckcomplete){

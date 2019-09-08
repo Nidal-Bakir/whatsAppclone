@@ -7,10 +7,12 @@ import android.os.Bundle;
 import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.view.GestureDetectorCompat;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnGestureListener;
@@ -18,6 +20,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -36,6 +39,8 @@ import com.google.gson.Gson;
 
 import java.util.List;
 
+import de.hdodenhof.circleimageview.CircleImageView;
+
 
 public class StatusViewer extends Fragment implements View.OnTouchListener {
     private static final String TAG = "StatusViewer";
@@ -44,12 +49,18 @@ public class StatusViewer extends Fragment implements View.OnTouchListener {
     private OnFragmentInteractionListener mListener;
     private RecyclerView recyclerView;
     private CardView listContainer;
-    private TextView viewedCount;
-    private ImageButton deleteStatus;
+    // show the number of visits for my story , contact name
+    private TextView viewedCount,contact_name;
+    private CircleImageView contactProfile;
+    private ImageButton deleteStatus,exit;
+    //status image
     private ImageView imageView;
+    // for Attach the on onTouch listener and detect the Gesture
     private ConstraintLayout viewer_layout;
     private GestureDetector gestureDetector;
     private DataBase dataBase;
+    // for move between status
+    private List<Status> statusList;
 
     public StatusViewer() {
         // Required empty public constructor
@@ -70,7 +81,8 @@ public class StatusViewer extends Fragment implements View.OnTouchListener {
         if (getArguments() != null) {
             // get the status object from string using Gson
             String myGsonStatus = getArguments().getString(STATUS_ARG);
-            this.status = new Gson().fromJson(myGsonStatus, Status.class);
+            status = new Gson().fromJson(myGsonStatus, Status.class);
+
         }
     }
 
@@ -80,22 +92,33 @@ public class StatusViewer extends Fragment implements View.OnTouchListener {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_status_viewer, container, false);
+        getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         // link the layout to detect the Gesture on it to (hide/show the viewed list )
         viewer_layout = view.findViewById(R.id.viewer_layout);
         //the list
         recyclerView = view.findViewById(R.id.recyclerViewer);
         imageView = view.findViewById(R.id.viewer_Image);
         deleteStatus=view.findViewById(R.id.deleteStatus);
+        exit=view.findViewById(R.id.exit_from_viewer);
+        contactProfile=view.findViewById(R.id.viewer_profile_image);
+        contact_name=view.findViewById(R.id.viewer_contact_name);
         viewedCount=view.findViewById(R.id.viewedCount);
         listContainer=view.findViewById(R.id.viewer_CardView);
         dataBase=new DataBase(getContext());
         TextView swipeUpTextView=view.findViewById(R.id.swipeUpTextView);
+        //status imaeg
         Glide.with(this)
                 .load(status.getStatusUrl())
                 .into(imageView);
+        // profile image
+        Glide.with(this)
+                .load(dataBase.getUserProfile(null,status.getPhone_number()).getImageUrl())
+                .error(R.drawable.ic_default_avatar_profile)
+                .into(contactProfile);
         // if the status is my status
         if (status.getPhone_number().equals(UserSettings.PHONENUMBER)) {
             swipeUpTextView.setVisibility(View.VISIBLE);
+            contact_name.setText("My story");
             viewer_layout.setOnTouchListener(this);
             gestureDetector = new GestureDetector(getContext(), new OnSwipeListener() {
                 @Override
@@ -123,8 +146,27 @@ public class StatusViewer extends Fragment implements View.OnTouchListener {
             recyclerView.setLayoutManager(new LinearLayoutManager(getContext(),RecyclerView.VERTICAL, false));
             recyclerView.setAdapter(visitStatusAdapter);
             viewedCount.setText("Viewed by "+visitStatusList.size() +" contacts");
+        }else {
+            //the status is not mine
+            contact_name.setText(dataBase.getContact(null,status.getPhone_number()).getContact_name());
         }
+        // close the fragment
+        exit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                getActivity().onBackPressed();
+
+            }
+        });
+
         return view;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
     }
 
     public void onActionHandler(OnFragmentInteractionListener onFragmentInteractionListener) {

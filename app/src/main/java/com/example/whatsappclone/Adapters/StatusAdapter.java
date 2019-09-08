@@ -118,7 +118,7 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                     else  normalStatus.uploadProgress.setVisibility(View.GONE);
             // handle if the status is my status
             if (statuses.get(holder.getAdapterPosition() - 1).getPhone_number().equals(MY_STATUS)) {
-                normalStatus.ownerName.setText("Your status");
+                normalStatus.ownerName.setText("Your story");
 //                Glide.with(context)
 //                        .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
 //                        .error(R.drawable.ic_default_avatar_profile)

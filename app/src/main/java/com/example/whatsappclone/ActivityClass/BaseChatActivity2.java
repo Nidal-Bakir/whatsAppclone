@@ -11,6 +11,7 @@ import android.os.Bundle;
 
 import com.bumptech.glide.Glide;
 import com.example.whatsappclone.Adapters.StatusAdapter;
+import com.example.whatsappclone.AssistanceClass.InternetCheck;
 import com.example.whatsappclone.AssistanceClass.OnSwipeListener;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
@@ -350,6 +351,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                             .into(profileImage);
                     // status init
                     statusInit();
+
 
 
                 }

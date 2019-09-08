@@ -10,8 +10,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
+import com.example.whatsappclone.AssistanceClass.InternetCheck;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.firebase.ui.auth.AuthUI;
