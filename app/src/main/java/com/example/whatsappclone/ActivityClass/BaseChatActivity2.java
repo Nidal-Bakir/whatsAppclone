@@ -392,10 +392,12 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                     @Override
                     public void onFragmentIGestureDetector(CardView viewedList, OnSwipeListener.Direction direction) {
                         if (direction == OnSwipeListener.Direction.up)
+                            //show the list of contacts hows visited the user storu
                             viewedList.animate().translationY(0).setDuration(250).start();
-
                         else {
+                            // from DP to PX
                             int px = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 350, getApplicationContext().getResources().getDisplayMetrics());
+                            // hide the list
                             viewedList.animate().translationY(px).setDuration(200).start();
                         }
                     }
