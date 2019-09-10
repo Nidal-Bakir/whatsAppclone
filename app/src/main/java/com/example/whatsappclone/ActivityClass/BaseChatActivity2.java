@@ -2,22 +2,21 @@ package com.example.whatsappclone.ActivityClass;
 
 import android.Manifest;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
-import android.graphics.drawable.AdaptiveIconDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+
 import static com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions.withCrossFade;
+
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.RequestBuilder;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
-import com.bumptech.glide.request.transition.DrawableCrossFadeFactory;
 import com.crashlytics.android.Crashlytics;
 import com.example.whatsappclone.Adapters.StatusAdapter;
 import com.example.whatsappclone.AssistanceClass.InternetCheck;
@@ -79,7 +78,9 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 
 import io.fabric.sdk.android.Fabric;
+
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -89,15 +90,16 @@ import de.hdodenhof.circleimageview.CircleImageView;
 public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "BaseChatActivity2";
     private FirebaseAuth auth = FirebaseAuth.getInstance();
-    private static final int RECORD_AUDIO_REQUEST_CODE = 288;
-    private static final int CAMERA_REQUEST_CODE = 955;
-    private static final int READ_CONTACTS_REQUEST_CODE = 873;
-    private static final int WRITE_CONTACTS_REQUEST_CODE = 29;
-    private static final int READ_EXTERNAL_STORAGE_REQUEST_CODE = 13;
-    private static final int WRITE_EXTERNAL_STORAGE_REQUEST_CODE = 481;
-    private static final int SEND_SMS_REQUEST_CODE = 124;
     private static final int IMAGE_CHOOSER_REQUEST_CODE = 476;
     private static final int ADD_STATUS_REQUEST_CODE = 823;
+    private static final int PERMISSIONS = 1234;
+    private String[] appPermissions = {Manifest.permission.READ_CONTACTS
+            , Manifest.permission.RECORD_AUDIO
+            , Manifest.permission.WRITE_EXTERNAL_STORAGE
+            , Manifest.permission.READ_EXTERNAL_STORAGE
+            , Manifest.permission.CAMERA
+            , Manifest.permission.SEND_SMS
+            , Manifest.permission.ACCESS_FINE_LOCATION};
     private TextView profilePhoneNumber;
     private CircleImageView profileImage;
     private UploadMedia uploadMedia;
@@ -115,75 +117,32 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private StatusAdapter statusAdapter;
     private FragmentManager fragmentManager = null;
     private FragmentTransaction fragmentTransaction;
+    private SyncContactsWithCloudDB contactsWithCloudDB;
+    private String countryCode;
 
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case RECORD_AUDIO_REQUEST_CODE:
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted
-                } else {
-                    // permission denied
-                    Toast.makeText(this, "Permission denied to RECORD voice messages", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            case CAMERA_REQUEST_CODE:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted
-                } else {
-                    // permission denied
-                    Toast.makeText(this, "Permission denied to take photo ", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            case READ_CONTACTS_REQUEST_CODE:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted
-                } else {
-                    // permission denied
-                    Toast.makeText(this, "Permission denied to read your contacts", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            case WRITE_CONTACTS_REQUEST_CODE:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted
-                } else {
-                    // permission denied
-                    Toast.makeText(this, "Permission denied on write ", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            case READ_EXTERNAL_STORAGE_REQUEST_CODE:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted
-                } else {
-                    // permission denied
-                    Toast.makeText(this, "Permission denied to read your External storage", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            case WRITE_EXTERNAL_STORAGE_REQUEST_CODE:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted
-                } else {
-                    // permission denied
-                    Toast.makeText(this, "Permission denied to write on your External storage", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            case SEND_SMS_REQUEST_CODE:
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // permission was granted
-                } else {
-                    // permission denied
-                    Toast.makeText(this, "Permission denied to send SMS", Toast.LENGTH_SHORT).show();
-                }
-                break;
+        if (requestCode == PERMISSIONS) {
+            int denidCount = 0;
+            for (int i = 0; i < grantResults.length; i++) {
+                if (grantResults[i] == PackageManager.PERMISSION_DENIED)
+                    denidCount++;
+            }
+            if (denidCount == 0)
+                startApp();
+            else {
+                View view =findViewById(R.id.chat_floating_bt);
+                final Snackbar snackbar=Snackbar.make(view,"The app need all this permissions!!",Snackbar.LENGTH_INDEFINITE);
+                snackbar.setAction("Re Ask me", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        checkAndRequestPermissions();
+                    }
+                });
+
+                snackbar.show();
+            }
         }
     }
 
@@ -210,8 +169,8 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                                 uploadMedia.OnComplete(new UploadMedia.OnProfileUploadCompleteListener() {
                                     @Override
                                     public void onUploadCompleteListener(final String uri) {
-                                        String oldimaeg=getSharedPreferences("oldImage",MODE_PRIVATE).getString("image","");
-                                        RequestBuilder<Drawable>requestBuilder=Glide.with(getApplicationContext()).load(oldimaeg);
+                                        String oldimaeg = getSharedPreferences("oldImage", MODE_PRIVATE).getString("image", "");
+                                        RequestBuilder<Drawable> requestBuilder = Glide.with(getApplicationContext()).load(oldimaeg);
                                         Glide.with(getApplicationContext())
                                                 .load(uri)
                                                 .error(requestBuilder)//set the default image if the user delete the profile image or something  went wrong
@@ -222,9 +181,10 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                                                         Toast.makeText(BaseChatActivity2.this, "Can't update your profile image ", Toast.LENGTH_SHORT).show();
                                                         return false;
                                                     }
+
                                                     @Override
                                                     public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
-                                                       getSharedPreferences("oldImage",MODE_PRIVATE).edit().putString("image",uri).apply();
+                                                        getSharedPreferences("oldImage", MODE_PRIVATE).edit().putString("image", uri).apply();
                                                         //hide the progressBar
                                                         profileProgressBar.setVisibility(View.GONE);
                                                         Toast.makeText(BaseChatActivity2.this, "your profile image has been updated ", Toast.LENGTH_SHORT).show();
@@ -304,105 +264,122 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         //i.g US this will use with libphonenumber lib
         // to handle the numbers whose  doesn't have area code i.g(+1)
         TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
-        final String countryCode = tm.getSimCountryIso();
+        countryCode = tm.getSimCountryIso();
         // open the login activity
         if (auth.getCurrentUser() == null) {
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
             finish();
         } else {
-            // inti class for upload media images and videos
-            uploadMedia = new UploadMedia(this);
-            statusCollectionRef = firestore.collection("profile").document(UserSettings.PHONENUMBER).collection("status");
             // ask for all Permissions
-            AskForPermissions();
-            // for DataBase Debug
-            Stetho.initializeWithDefaults(this);
-            //connect to DataBase
-            dataBase = new DataBase(this);
-            //sync the contacts
-            SyncContactsWithCloudDB contactsWithClouldDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
-            contactsWithClouldDB.execute(false);
+            if (checkAndRequestPermissions()) {
+                startApp();
 
-            Toolbar toolbar = findViewById(R.id.toolbar);
-            setSupportActionBar(toolbar);
-            setTitle("WhatsApp");
-            //open the contacts activity
-            FloatingActionButton fab = findViewById(R.id.chat_floating_bt);
-            fab.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    startActivity(new Intent(BaseChatActivity2.this, ContactsActivity.class));
-                }
-            });
-            DrawerLayout drawer = findViewById(R.id.drawer_layout);
-            NavigationView navigationView = findViewById(R.id.nav_view);
-            ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                    this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-            drawer.addDrawerListener(toggle);
-            toggle.syncState();
-            navigationView.setNavigationItemSelectedListener(this);
-            View nav = navigationView.getHeaderView(0);
-            profilePhoneNumber = nav.findViewById(R.id.profile_phone_number);
-
-            try {// set phone number to the text view in nav_bar
-                PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
-                Phonenumber.PhoneNumber myNumber = phoneNumberUtil.parse(UserSettings.PHONENUMBER, countryCode.toUpperCase());
-                profilePhoneNumber.setText(phoneNumberUtil.format(myNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL));
-            } catch (NumberParseException e) {
-                e.printStackTrace();
-                profilePhoneNumber.setText(UserSettings.PHONENUMBER);
             }
-            profileProgressBar = nav.findViewById(R.id.profileImageProgressBar);
-            /* change progress Bar color  */
-            Drawable drawable = profileProgressBar.getIndeterminateDrawable().mutate();
-            drawable.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
-            profileProgressBar.setProgressDrawable(drawable);
-            profileImage = nav.findViewById(R.id.profile_Image);
+        }
+    }
 
-            //choose image profile
-            profileImage.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent();
-                    intent.setType("image/*");
-                    intent.setAction(Intent.ACTION_GET_CONTENT);
-                    startActivityForResult(Intent.createChooser(intent, "select avatar"), IMAGE_CHOOSER_REQUEST_CODE);
+    private void startApp() {
+        // inti class for upload media images and videos
+        uploadMedia = new UploadMedia(this);
+        statusCollectionRef = firestore.collection("profile").document(UserSettings.PHONENUMBER).collection("status");
+        // for DataBase Debug
+        Stetho.initializeWithDefaults(this);
+        //connect to DataBase
+        dataBase = new DataBase(this);
+        //sync the contacts
+        contactsWithCloudDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
+        contactsWithCloudDB.execute(false);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        setTitle("WhatsApp");
+        //open the contacts activity
+        FloatingActionButton fab = findViewById(R.id.chat_floating_bt);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(BaseChatActivity2.this, ContactsActivity.class));
+            }
+        });
+        DrawerLayout drawer = findViewById(R.id.drawer_layout);
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.addDrawerListener(toggle);
+        toggle.syncState();
+        navigationView.setNavigationItemSelectedListener(this);
+        View nav = navigationView.getHeaderView(0);
+        profilePhoneNumber = nav.findViewById(R.id.profile_phone_number);
 
-                }
-            });
-            contactsWithClouldDB.setOnSyncFinish(new SyncContactsWithCloudDB.OnSyncFinish() {
-                @Override
-                public void onFinish(List<DataBase.Contact_Profile> contact_profiles) {
-                    /* set the profile image from DB
-                     * and if something went wrong then restore get the old profile image
-                     */
-                    String oldimaeg=getSharedPreferences("oldImage",MODE_PRIVATE).getString("image","");
-                    RequestBuilder<Drawable>requestBuilder=Glide.with(getApplicationContext()).load(oldimaeg);
-                    if (oldimaeg.equals(""))
+        try {// set phone number to the text view in nav_bar
+            PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
+            Phonenumber.PhoneNumber myNumber = phoneNumberUtil.parse(UserSettings.PHONENUMBER, countryCode.toUpperCase());
+            profilePhoneNumber.setText(phoneNumberUtil.format(myNumber, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL));
+        } catch (NumberParseException e) {
+            e.printStackTrace();
+            profilePhoneNumber.setText(UserSettings.PHONENUMBER);
+        }
+        profileProgressBar = nav.findViewById(R.id.profileImageProgressBar);
+        /* change progress Bar color  */
+        Drawable drawable = profileProgressBar.getIndeterminateDrawable().mutate();
+        drawable.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
+        profileProgressBar.setProgressDrawable(drawable);
+        profileImage = nav.findViewById(R.id.profile_Image);
+
+        //choose image profile
+        profileImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent();
+                intent.setType("image/*");
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(intent, "select avatar"), IMAGE_CHOOSER_REQUEST_CODE);
+
+            }
+        });
+        contactsWithCloudDB.setOnSyncFinish(new SyncContactsWithCloudDB.OnSyncFinish() {
+            @Override
+            public void onFinish(List<DataBase.Contact_Profile> contact_profiles) {
+                /* set the profile image from DB
+                 * and if something went wrong then restore get the old profile image
+                 */
+                String oldimaeg = getSharedPreferences("oldImage", MODE_PRIVATE).getString("image", "");
+                RequestBuilder<Drawable> requestBuilder = Glide.with(getApplicationContext()).load(oldimaeg);
+                if (oldimaeg.equals(""))
                     Glide.with(getApplicationContext())
                             .load(dataBase.getUserProfile(UserSettings.UID, null).getImageUrl())
                             .error(R.drawable.ic_default_avatar_profile)//set the default image if the user delete the profile image or something  went wrong
                             .into(profileImage);
-                    else Glide.with(getApplicationContext())
-                            .load(dataBase.getUserProfile(UserSettings.UID, null).getImageUrl())
-                            .error(requestBuilder)//set the default image if the user delete the profile image or something  went wrong
-                            .into(profileImage);
-                    // status init
-                    statusInit();
+                else Glide.with(getApplicationContext())
+                        .load(dataBase.getUserProfile(UserSettings.UID, null).getImageUrl())
+                        .error(requestBuilder)//set the default image if the user delete the profile image or something  went wrong
+                        .into(profileImage);
+                // status init
+                statusInit();
 
 
-                }
-            });
+            }
+        });
+    }
 
+    private boolean checkAndRequestPermissions() {
+        List<String> listPermissionsNeeded = new ArrayList<>();
+        for (String permission : appPermissions) {
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED)
+                listPermissionsNeeded.add(permission);
         }
-
+        if (!listPermissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this,
+                    listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]), PERMISSIONS);
+            return false;
+        }
+        return true;
     }
 
     public void statusInit() {
         statusList = dataBase.getAllStatus(); //get all status from DataBase
         statusRecyclerView = findViewById(R.id.StatusRecyclerView);
         statusRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        statusAdapter = new StatusAdapter(this,this, statusList);
+        statusAdapter = new StatusAdapter(this, this, statusList);
         statusRecyclerView.setAdapter(statusAdapter);
         // when user click add status item
         statusAdapter.onAddStatus(new StatusAdapter.OnAddStatusListener() {
@@ -544,62 +521,6 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
     }
 
-    private void AskForPermissions() {
-        if (Build.VERSION.SDK_INT > 23) {
-            //  RECORD AUDIO PERMISSION
-            if (ContextCompat.checkSelfPermission(this
-                    , Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
-                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.RECORD_AUDIO))
-                    Toast.makeText(this, " the app need this permission to send voice messages!", Toast.LENGTH_SHORT).show();
-                else
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, RECORD_AUDIO_REQUEST_CODE);
-            // READ CONTACTS PERMISSION
-            if (ContextCompat.checkSelfPermission(this
-                    , Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED)
-                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_CONTACTS))
-                    Toast.makeText(this, " the app need this permission to Sync you contacts with our servers!", Toast.LENGTH_SHORT).show();
-                else
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_CONTACTS}, READ_CONTACTS_REQUEST_CODE);
-            // WRITE CONTACTS PERMISSION
-            if (ContextCompat.checkSelfPermission(this
-                    , Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED)
-                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_CONTACTS))
-                    Toast.makeText(this, " the app need this permission to Sync you contacts with our servers!", Toast.LENGTH_SHORT).show();
-                else
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_CONTACTS}, WRITE_CONTACTS_REQUEST_CODE);
-            // WRITE EXTERNAL STORAGE PERMISSION
-            if (ContextCompat.checkSelfPermission(this
-                    , Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE))
-                    Toast.makeText(this, " the app need this permission to store your data!", Toast.LENGTH_SHORT).show();
-                else
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, WRITE_EXTERNAL_STORAGE_REQUEST_CODE);
-            //READ EXTERNAL STORAGE PERMISSION
-            if (ContextCompat.checkSelfPermission(this
-                    , Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE))
-                    Toast.makeText(this, " the app need this permission to store and read your data!", Toast.LENGTH_SHORT).show();
-                else
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, READ_EXTERNAL_STORAGE_REQUEST_CODE);
-            // CAMERA PERMISSION
-            if (ContextCompat.checkSelfPermission(this
-                    , Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED)
-                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA))
-                    Toast.makeText(this, " the app need this permission to send images!", Toast.LENGTH_SHORT).show();
-                else
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST_CODE);
-            if (ContextCompat.checkSelfPermission(this
-                    , Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED)
-                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.SEND_SMS))
-                    Toast.makeText(this, " the app need this permission to send SMS!", Toast.LENGTH_SHORT).show();
-                else
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, SEND_SMS_REQUEST_CODE);
-
-
-        }
-
-
-    }
 
     @Override
     protected void onStart() {
@@ -676,7 +597,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             case R.id.nav_settings:
 
 
-            break;
+                break;
             case R.id.nav_share:
                 break;
             case R.id.nav_send:
