@@ -1,6 +1,7 @@
 package com.example.whatsappclone.WhatsAppFireStore;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.widget.Toast;
 

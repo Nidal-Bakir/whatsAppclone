@@ -1,6 +1,8 @@
 package com.example.whatsappclone.Adapters;
 
+import android.app.Activity;
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,13 +11,20 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+import com.example.whatsappclone.ActivityClass.BaseChatActivity2;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.Status;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Iterator;
 import java.util.List;
@@ -31,9 +40,11 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     private Context context;
     private OnAddStatusListener onAddStatusListener;
     private OnStatusItemClickListener onStatusItemClickListener;
+    private Activity activity;
 
-    public StatusAdapter(Context context, List<Status> statuses) {
+    public StatusAdapter(Context context, Activity activity, List<Status> statuses) {
         this.context = context;
+        this.activity=activity;
         this.statuses = statuses;
         dataBase = new DataBase(context);
     }
@@ -44,9 +55,9 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                 if (statuses.get(i).getStatusUrl().equals(status.getStatusUrl()))
                     return;
                 else {
-                    statuses.set(i,status);
+                    statuses.set(i, status);
                     //notifyDataSetChanged();
-                    notifyItemChanged(i+1);
+                    notifyItemChanged(i + 1);
                     return;
                 }
         }
@@ -55,7 +66,7 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             this.notifyItemInserted(0);
         } else {
             statuses.add(status);
-            this.notifyItemInserted(statuses.size() );
+            this.notifyItemInserted(statuses.size());
         }
     }
 
@@ -65,7 +76,7 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             Status status = iterator.next();
             if (status.getPhone_number().equals(phone_number)) {
                 iterator.remove();
-                this.notifyItemRemoved(i+1);
+                this.notifyItemRemoved(i + 1);
                 break;
             }
         }
@@ -111,18 +122,27 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             Glide.with(context)
                     .load(statuses.get(holder.getAdapterPosition() - 1).getStatusUrl())
                     .error(R.drawable.ic_default_avatar_profile)
+                    .listener(new RequestListener<Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                            showSnackBar();
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                            return false;
+                        }
+                    })
                     .into(normalStatus.status);
-                    // so the user can see that his store is uploading (in progress)
-                    if (statuses.get(holder.getAdapterPosition()-1).isShowProgressBar())
-                        normalStatus.uploadProgress.setVisibility(View.VISIBLE);
-                    else  normalStatus.uploadProgress.setVisibility(View.GONE);
+            // so the user can see that his store is uploading (in progress)
+            if (statuses.get(holder.getAdapterPosition() - 1).isShowProgressBar())
+                normalStatus.uploadProgress.setVisibility(View.VISIBLE);
+            else normalStatus.uploadProgress.setVisibility(View.GONE);
             // handle if the status is my status
             if (statuses.get(holder.getAdapterPosition() - 1).getPhone_number().equals(MY_STATUS)) {
                 normalStatus.ownerName.setText("Your story");
-//                Glide.with(context)
-//                        .load(dataBase.getUserProfile(UserSettings.UID).getImageUrl())
-//                        .error(R.drawable.ic_default_avatar_profile)
-//                        .into(normalStatus.ownerImg);
+
 
             } else {
                 // other status item
@@ -178,7 +198,7 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             //ownerImg = itemView.findViewById(R.id.status_img_owner);
             ownerName = itemView.findViewById(R.id.status_owner);
             status = itemView.findViewById(R.id.status_img);
-            uploadProgress=itemView.findViewById(R.id.uploadprogress);
+            uploadProgress = itemView.findViewById(R.id.uploadprogress);
         }
     }
 
@@ -187,6 +207,12 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         public AddStatus(@NonNull View itemView) {
             super(itemView);
         }
+    }
+
+    private void showSnackBar() {
+        View view =activity.findViewById(R.id.chat_floating_bt);
+        Snackbar.make(view, "No internet connection !", Snackbar.LENGTH_LONG).show();
+
     }
 
 }
