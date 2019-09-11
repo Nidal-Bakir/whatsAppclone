@@ -50,7 +50,6 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
 
     @Override
     protected Void doInBackground(Boolean... booleans) {
-        force_sync = booleans[0];
         //read the contacts from phone
         contacts = getContactsFromUserPhone();
         //filter the contacts (get Valid contacts) and add area code

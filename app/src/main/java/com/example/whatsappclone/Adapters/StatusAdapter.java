@@ -150,9 +150,11 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                         dataBase.getContact(null
                                 , statuses.get(holder.getAdapterPosition() - 1).getPhone_number()).getContact_name());
             }
+
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    if (holder.getAdapterPosition()!=RecyclerView.NO_POSITION)
                     onStatusItemClickListener.onStatusItemClickListener(statuses.get(holder.getAdapterPosition() - 1));
                 }
             });

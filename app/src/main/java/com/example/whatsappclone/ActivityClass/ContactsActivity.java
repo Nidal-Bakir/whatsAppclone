@@ -91,12 +91,12 @@ public class ContactsActivity extends AppCompatActivity {
             @Override
             public void onClick(DataBase.Contact contact) {
                 finish();
-                //TODO :: go to chat activity for start new conversation
-                Toast.makeText(ContactsActivity.this
-                        , contact.getUID()
-                                + "::" + contact.getPhone_number()
-                                + "::" + contact.getContact_name()
-                        , Toast.LENGTH_LONG).show();
+                Intent intent=new Intent(ContactsActivity.this,chatActivity.class);
+                intent.putExtra("phone_number",contact.getPhone_number());
+                intent.putExtra("uid",contact.getUID());
+                intent.putExtra("contact_name",contact.getContact_name());
+                startActivity(intent);
+
             }
         });
         //set the number of contacts
