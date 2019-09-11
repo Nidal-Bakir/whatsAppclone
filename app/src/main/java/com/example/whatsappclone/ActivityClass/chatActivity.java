@@ -10,9 +10,12 @@ import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Menu;
 
 import android.view.MenuItem;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
@@ -27,6 +30,7 @@ public class chatActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private ImageButton send,emoji,camera,attachFile;
     private DataBase dataBase;
+    private EditText messageEditText;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,10 +47,24 @@ public class chatActivity extends AppCompatActivity {
         contactNameView.setText(contactName);
         onLineState=toolbar.findViewById(R.id.chat_onlineState);
         profileImage=toolbar.findViewById(R.id.chat_profile_image);
+        messageEditText=findViewById(R.id.chat_message);
         Glide.with(this)
                 .load(dataBase.getUserProfile(userUid,null).getImageUrl())
                 .error(R.drawable.ic_default_avatar_profile)
                 .into(profileImage);
+        messageEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    //TODO:send that your are writing...
+                if (s.toString().trim().length() > 0) {
+
+                }
+            }
+            @Override
+            public void afterTextChanged(Editable s) { }
+        });
 
 
 
