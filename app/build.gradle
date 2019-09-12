@@ -54,6 +54,7 @@ dependencies {
     //Glide
     implementation 'com.github.bumptech.glide:glide:4.9.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.preference:preference:1.1.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.9.0'
     //CircleImageView
     implementation 'de.hdodenhof:circleimageview:3.0.0'
@@ -64,6 +65,10 @@ dependencies {
     implementation 'com.facebook.stetho:stetho-js-rhino:1.5.1'
     //smooth progressBar lib
     implementation 'com.github.castorflex.smoothprogressbar:library-circular:1.3.0'
+    //emoji ios - google -twitter
+    implementation 'com.vanniktech:emoji-ios:0.6.0'
+    implementation 'com.vanniktech:emoji-google:0.6.0'
+    implementation 'com.vanniktech:emoji-twitter:0.6.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'

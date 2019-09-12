@@ -2,6 +2,7 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/chat_Root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".ActivityClass.chatActivity">
@@ -67,38 +68,41 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
     android:layout_width="match_parent"
+
     android:layout_height="wrap_content"
     app:layout_anchorGravity="bottom|center"
     app:layout_anchor="@+id/chat_recycler_view">
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/constraintLayout"
+            android:id="@+id/chat_Box_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_margin="4dp"
             android:background="@drawable/chat_layout_shape"
             android:orientation="horizontal"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/imageButton"
+            app:layout_constraintEnd_toStartOf="@+id/linearLayout"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <EditText
+            <com.vanniktech.emoji.EmojiEditText
                 android:id="@+id/chat_message"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:background="#FFFFFF"
                 android:gravity="top|start"
-                android:inputType="textMultiLine"
                 android:hint="Type a message"
-
+                android:inputType="textMultiLine"
                 android:maxLines="5"
                 android:overScrollMode="always"
+                android:paddingTop="4dp"
                 android:scrollbarStyle="insideInset"
                 android:scrollbars="vertical"
                 android:singleLine="false"
                 android:textColor="#000000"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@+id/imageButton4"
+                app:layout_constraintEnd_toStartOf="@+id/attach"
                 app:layout_constraintStart_toEndOf="@+id/chat_emoji"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -107,7 +111,6 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_gravity="center_vertical"
-                android:layout_marginBottom="2dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="open emoji keys"
                 android:padding="7dp"
@@ -117,26 +120,23 @@
                 app:layout_constraintStart_toStartOf="parent" />
 
             <ImageButton
-                android:id="@+id/imageButton4"
+                android:id="@+id/attach"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_gravity="center_vertical"
-                android:layout_marginBottom="2dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="7dp"
                 android:scaleType="centerCrop"
                 android:src="@drawable/ic_attach"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@+id/imageButton3" />
+                app:layout_constraintEnd_toStartOf="@+id/chat_camera" />
 
             <ImageButton
-                android:id="@+id/imageButton3"
+                android:id="@+id/chat_camera"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_gravity="center_vertical"
                 android:layout_marginEnd="8dp"
-
-                android:layout_marginBottom="2dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="7dp"
                 android:scaleType="centerCrop"
@@ -144,19 +144,26 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <ImageButton
-            android:id="@+id/imageButton"
+        <LinearLayout
+            android:id="@+id/linearLayout"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_gravity="center_vertical"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="4dp"
             android:layout_marginBottom="4dp"
-            android:background="@drawable/send_button_shape"
-            android:scaleType="center"
-            android:src="@drawable/ic_voice"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            android:background="@drawable/send_button_shape">
+            <ImageButton
+                android:id="@+id/chat_send"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:background="@drawable/send_button_shape"
+                android:scaleType="center"
+                android:src="@drawable/ic_voice"
+                />
+        </LinearLayout>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
 

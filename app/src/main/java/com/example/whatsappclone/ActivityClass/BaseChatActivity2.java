@@ -593,7 +593,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 startActivity(new Intent(BaseChatActivity2.this, ContactsActivity.class));
                 break;
             case R.id.nav_settings:
-
+                startActivity(new Intent(BaseChatActivity2.this,SettingsActivity.class));
 
                 break;
             case R.id.nav_share:
