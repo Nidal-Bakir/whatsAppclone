@@ -121,6 +121,7 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             final Normal_status normalStatus = (Normal_status) holder;
             Glide.with(context)
                     .load(statuses.get(holder.getAdapterPosition() - 1).getStatusUrl())
+                    .placeholder(R.color.white)
                     .error(R.drawable.ic_default_avatar_profile)
                     .listener(new RequestListener<Drawable>() {
                         @Override

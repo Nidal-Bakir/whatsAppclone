@@ -113,7 +113,7 @@
                 android:layout_gravity="center_vertical"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="open emoji keys"
-                android:padding="7dp"
+                android:padding="6dp"
                 android:scaleType="centerCrop"
                 android:src="@drawable/ic_emojis"
                 app:layout_constraintBottom_toBottomOf="parent"

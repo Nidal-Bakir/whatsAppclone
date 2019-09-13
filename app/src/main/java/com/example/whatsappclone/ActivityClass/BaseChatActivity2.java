@@ -146,6 +146,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable final Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode) {
             case IMAGE_CHOOSER_REQUEST_CODE:
                 if (resultCode == RESULT_OK) {
@@ -171,6 +172,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                                         RequestBuilder<Drawable> requestBuilder = Glide.with(getApplicationContext()).load(oldimaeg);
                                         Glide.with(getApplicationContext())
                                                 .load(uri)
+                                                .placeholder(R.color.white)
                                                 .error(requestBuilder)//set the default image if the user delete the profile image or something  went wrong
                                                 .listener(new RequestListener<Drawable>() {
                                                     @Override

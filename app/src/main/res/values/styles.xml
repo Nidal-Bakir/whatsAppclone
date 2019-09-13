@@ -7,11 +7,14 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:fontFamily">@font/roboto</item>
-
     </style>
-<style name="contactActivity" parent="AppTheme">
-    <item name="android:textColorSecondary">@color/white</item>
-</style>
+
+
+
+
+    <style name="contactActivity" parent="AppTheme">
+        <item name="android:textColorSecondary">@color/white</item>
+    </style>
 
 
     <style name="AppTheme.NoActionBar">

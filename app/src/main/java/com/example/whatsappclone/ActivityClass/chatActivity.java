@@ -99,6 +99,15 @@ public class chatActivity extends AppCompatActivity {
                 .load(dataBase.getUserProfile(userUid, null).getImageUrl())
                 .error(R.drawable.ic_default_avatar_profile)
                 .into(profileImage);
+        messageEditText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (emojiPopup.isShowing()) {
+                    emojiPopup.dismiss();
+                    emoji.setImageResource(R.drawable.ic_emojis);
+                }
+            }
+        });
         messageEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -152,6 +161,11 @@ public class chatActivity extends AppCompatActivity {
         emoji.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (emojiPopup.isShowing()) {
+                    emoji.setImageResource(R.drawable.ic_emojis);
+                } else {
+                    emoji.setImageResource(R.drawable.ic_keyboard);
+                }
                 emojiPopup.toggle();
             }
         });
