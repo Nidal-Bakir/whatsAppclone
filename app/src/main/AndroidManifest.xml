@@ -20,7 +20,9 @@
         </activity>
         <activity
             android:name=".ActivityClass.chatActivity"
-            android:theme="@style/contactActivity"></activity>
+            android:theme="@style/contactActivity">
+
+        </activity>
         <activity
             android:name=".ActivityClass.StatusPrivacy"
             android:parentActivityName=".ActivityClass.BaseChatActivity2" />
@@ -41,6 +43,7 @@
             android:name="io.fabric.ApiKey"
             android:value="1746f87f80fe404fb18dde01431a814c4bad0401" />
     </application>
+
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />

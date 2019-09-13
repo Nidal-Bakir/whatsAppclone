@@ -19,6 +19,7 @@ apply plugin: 'com.google.gms.google-services'
 android {
     compileSdkVersion 28
     defaultConfig {
+        vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
         applicationId "com.example.whatsappclone"
         minSdkVersion 19

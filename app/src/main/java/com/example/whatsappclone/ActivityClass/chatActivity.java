@@ -15,16 +15,22 @@ import com.vanniktech.emoji.EmojiManager;
 import com.vanniktech.emoji.EmojiPopup;
 import com.vanniktech.emoji.google.GoogleEmojiProvider;
 import com.vanniktech.emoji.ios.IosEmojiProvider;
+import com.vanniktech.emoji.listeners.OnEmojiPopupDismissListener;
 import com.vanniktech.emoji.twitter.TwitterEmojiProvider;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.text.method.KeyListener;
+import android.util.Log;
 import android.util.TypedValue;
+import android.view.KeyEvent;
 import android.view.Menu;
 
 import android.view.MenuItem;
@@ -47,18 +53,20 @@ public class chatActivity extends AppCompatActivity {
     private EmojiEditText messageEditText;
     private ConstraintLayout messageBox;
     private CoordinatorLayout chatLayoutRoot;
+    private EmojiPopup emojiPopup;
 
     private enum SendState {TEXT, VOICE}
 
     SendState sendState = SendState.VOICE;
 
+    private static final String TAG = "chatActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // emoji init
-        SharedPreferences emojiType = getSharedPreferences("emoji", MODE_PRIVATE);
-        String type = emojiType.getString("type", "ios");
+        // emoji init and select the emoji package from settings
+        SharedPreferences emojiType = PreferenceManager.getDefaultSharedPreferences(this);
+        String type = emojiType.getString("emoji", "ios");
         if (type != null)
             switch (type) {
                 case "twitter":
@@ -81,6 +89,7 @@ public class chatActivity extends AppCompatActivity {
         userPhoneNumber = intent.getStringExtra("phone_number");
         userUid = intent.getStringExtra("uid");
         contactName = intent.getStringExtra("contact_name");
+        //init the Views
         contactNameView = toolbar.findViewById(R.id.chat_contact_name);
         contactNameView.setText(contactName);
         onLineState = toolbar.findViewById(R.id.chat_onlineState);
@@ -88,7 +97,12 @@ public class chatActivity extends AppCompatActivity {
         chatLayoutRoot = findViewById(R.id.chat_Root);
         messageEditText = findViewById(R.id.chat_message);
         // init the popupEmoji
-        final EmojiPopup emojiPopup = EmojiPopup.Builder.fromRootView(chatLayoutRoot).build(messageEditText);
+        emojiPopup = EmojiPopup.Builder.fromRootView(chatLayoutRoot).setOnEmojiPopupDismissListener(new OnEmojiPopupDismissListener() {
+            @Override
+            public void onEmojiPopupDismiss() {
+                emoji.setImageResource(R.drawable.ic_emojis);
+            }
+        }).build(messageEditText);
         messageBox = findViewById(R.id.chat_Box_container);
         camera = findViewById(R.id.chat_camera);
         attachFile = findViewById(R.id.attach);
@@ -99,6 +113,7 @@ public class chatActivity extends AppCompatActivity {
                 .load(dataBase.getUserProfile(userUid, null).getImageUrl())
                 .error(R.drawable.ic_default_avatar_profile)
                 .into(profileImage);
+
         messageEditText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -121,8 +136,8 @@ public class chatActivity extends AppCompatActivity {
                 final int px = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP
                         , 50, getApplicationContext().getResources().getDisplayMetrics());
                 if (s.toString().trim().length() > 0) {
-                    sendState = SendState.TEXT;
-                    if (start == 0 && before == 0) {
+                    if (sendState != SendState.TEXT) {
+                        sendState = SendState.TEXT;
                         attachFile.animate().translationY(px).setDuration(150).start();
                         camera.animate().translationY(px).setDuration(150).start();
                         messageViewConstraint.connect(R.id.chat_message, ConstraintSet.END, R.id.chat_Box_container, ConstraintSet.END, 32);
@@ -136,7 +151,7 @@ public class chatActivity extends AppCompatActivity {
                             }
                         }).start();
                     }
-                } else {
+                } else if (sendState != SendState.VOICE) {
                     sendState = SendState.VOICE;
                     attachFile.animate().translationY(0).setDuration(100).start();
                     camera.animate().translationY(0).setDuration(100).start();
@@ -157,6 +172,8 @@ public class chatActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {
             }
         });
+
+
         // show OR dismiss the popup emoji layout
         emoji.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -196,5 +213,11 @@ public class chatActivity extends AppCompatActivity {
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+
     }
 }
