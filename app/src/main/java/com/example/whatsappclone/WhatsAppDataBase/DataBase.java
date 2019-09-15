@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.GenralContact;
+import com.example.whatsappclone.WhatsApp_Models.MessageModel;
 import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
 import com.example.whatsappclone.WhatsApp_Models.Status;
@@ -162,6 +163,25 @@ public class DataBase extends SQLiteOpenHelper {
                     + StatusVisit.TIME + " TEXT "
                     + ")";
 
+    // the general table for any chat table
+    private class ChatTable implements BaseColumns {
+        private static final String ID = "_id";
+        private static final String PHONE_NUMBER = "phone_number";
+        private static final String MESSAGE_UID = "message_uid";
+        private static final String MESSAGE = "message";
+        private static final String VOICE_URL = "voice_url";
+        private static final String VOICE_PATH = "voice_path";
+        private static final String IMAGE_URL = "image_url";
+        private static final String IMAGE_PATH = "image_path";
+        private static final String VIDEO_URL = "video_url";
+        private static final String VIDEO_PATH = "video_path";
+        private static final String FILE_URL = "file_url";
+        private static final String FILE_PATH = "file_path";
+        private static final String MESSAGE_STATE = "message_state";
+        private static final String DATE = "date";
+
+    }
+
     public DataBase(@Nullable Context context) {
         super(context, DB_NAME, null, 1);
     }
@@ -246,17 +266,17 @@ public class DataBase extends SQLiteOpenHelper {
     }
 
     //this function will get the image for profile
-    public ProfileImage getUserProfile(String UID,String phone_number) {
+    public ProfileImage getUserProfile(String UID, String phone_number) {
         database = this.getReadableDatabase();
         Cursor cursor;
-        if (UID!=null)
-         cursor = database.query(ProfilesTable.TABLE_NAME
-                , null
-                , ProfilesTable.UID + " = ? "
-                , new String[]{UID}
-                , null
-                , null
-                , null);
+        if (UID != null)
+            cursor = database.query(ProfilesTable.TABLE_NAME
+                    , null
+                    , ProfilesTable.UID + " = ? "
+                    , new String[]{UID}
+                    , null
+                    , null
+                    , null);
         else
             cursor = database.query(ProfilesTable.TABLE_NAME
                     , null
@@ -415,7 +435,7 @@ public class DataBase extends SQLiteOpenHelper {
     public Contact getContact(String UID, String phone_number) {
         database = this.getReadableDatabase();
         Cursor cursor;
-        //so i can search using UID OR phone number
+        //so i can search using MESSAGE_UID OR phone number
         if (UID != null)
             cursor = database.query(
                     ContactsTable.TABLE_NAME
@@ -506,7 +526,7 @@ public class DataBase extends SQLiteOpenHelper {
         database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(ContactsTable.CONTACT_NAME, contactName);
-        //so i can update using UID OR phone number
+        //so i can update using MESSAGE_UID OR phone number
         if (UID != null)
             database.update(
                     ContactsTable.TABLE_NAME
@@ -522,7 +542,7 @@ public class DataBase extends SQLiteOpenHelper {
 
     public String getOnlineStateForUser(String uid, String phone_number) {
         Cursor cursor;
-        //so i can search using UID OR phone number
+        //so i can search using MESSAGE_UID OR phone number
         if (uid != null)
             cursor = database.query(
                     ContactsTable.TABLE_NAME
@@ -577,7 +597,7 @@ public class DataBase extends SQLiteOpenHelper {
         database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(PrivacyTable.CONTACT_NAME, contactName);
-        //so i can update using UID OR phone number
+        //so i can update using MESSAGE_UID OR phone number
         if (UID != null)
             database.update(
                     PrivacyTable.TABLE_NAME
@@ -595,7 +615,7 @@ public class DataBase extends SQLiteOpenHelper {
         database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(PrivacyTable.AUTHORIZED, authorized);
-        //so i can update using UID OR phone number
+        //so i can update using MESSAGE_UID OR phone number
         if (UID != null)
             database.update(
                     PrivacyTable.TABLE_NAME
@@ -671,13 +691,13 @@ public class DataBase extends SQLiteOpenHelper {
                         , null
                         , StatusVisit.PHONE_NUMBER + " =?"
                         , new String[]{visitStatus.getPhone_number()}
-                        ,null
-                        ,null
-                        ,null);
-        if (cursor.getCount()==EMPTYCURSOR)
-        database.insert(StatusVisit.TABLE_NAME
-                , null
-                , contentValues);
+                        , null
+                        , null
+                        , null);
+        if (cursor.getCount() == EMPTYCURSOR)
+            database.insert(StatusVisit.TABLE_NAME
+                    , null
+                    , contentValues);
         cursor.close();
 
     }
@@ -702,8 +722,38 @@ public class DataBase extends SQLiteOpenHelper {
         cursor.close();
         return statusVisitList;
     }
-    public void deleteAllVisits(){
-        database=this.getWritableDatabase();
-        database.delete(StatusVisit.TABLE_NAME,null,null);
+
+    public void deleteAllVisits() {
+        database = this.getWritableDatabase();
+        database.delete(StatusVisit.TABLE_NAME, null, null);
+    }
+
+    public void getTheLastUidForMessage(String phnone_number) {
+    }
+
+    public void addMessageInChatTable(String phnone_number, MessageModel messageModel) {
+        database = this.getReadableDatabase();
+        database.execSQL("CREATE TABLE IF NOT EXISTS "
+                + phnone_number + " ( "
+                + ChatTable.ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + ChatTable.PHONE_NUMBER + " TEXT,"
+                + ChatTable.MESSAGE_UID + " TEXT, "
+                + ChatTable.MESSAGE + " TEXT,"
+                + ChatTable.VOICE_URL + " TEXT,"
+                + ChatTable.VOICE_PATH + " TEXT,"
+                + ChatTable.IMAGE_URL + " TEXT,"
+                + ChatTable.IMAGE_PATH + " TEXT,"
+                + ChatTable.VIDEO_URL + " TEXT,"
+                + ChatTable.VIDEO_PATH + " TEXT,"
+                + ChatTable.FILE_URL + " TEXT,"
+                + ChatTable.FILE_PATH + " TEXT,"
+                + ChatTable.MESSAGE_STATE + " INTEGER,"
+                + ChatTable.DATE + " INTEGER"
+                + " )"
+        );
+        ContentValues contentValues = new ContentValues();
+//        contentValues.put();
+//        database.insert(phnone_number,)
+        //show notifection and send message that you are dilevert the message
     }
 }

@@ -19,6 +19,7 @@ import com.crashlytics.android.Crashlytics;
 import com.example.whatsappclone.Adapters.StatusAdapter;
 import com.example.whatsappclone.AssistanceClass.InternetCheck;
 import com.example.whatsappclone.AssistanceClass.OnSwipeListener;
+import com.example.whatsappclone.AssistanceClass.BackgroundWorker;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
@@ -56,6 +57,10 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.work.Constraints;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import android.view.Menu;
 import android.widget.ProgressBar;
@@ -80,7 +85,9 @@ import io.fabric.sdk.android.Fabric;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -274,8 +281,21 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             if (checkAndRequestPermissions()) {
                 startApp();
 
+
             }
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
+                .CONNECTED).build();
+        OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
+                .setConstraints(constraints).build();
+        WorkManager.getInstance(getBaseContext()).enqueue(uploadWork);
+        contactsWithCloudDB.cancel(true);
+
+        super.onDestroy();
     }
 
     private void startApp() {
