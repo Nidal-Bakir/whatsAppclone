@@ -23,6 +23,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -44,7 +45,8 @@ public class BackgroundWorker extends Worker {
         /* when the user open chatActivity the other user number will be her
          * so the user will not receive notifications from that number
          * and the chat activity will take care the message store
-        */
+         */
+
         final String phone_number = getInputData().getString("phone_number");
         FirebaseFirestore firestore = FirebaseFirestore.getInstance();
         final CollectionReference conversation = firestore.collection("profile")
@@ -73,15 +75,34 @@ public class BackgroundWorker extends Worker {
                             Map<String, String> map = new HashMap<>();
                             map.put("phone_number", event.getPhoneNumber());
                             conversation.document(event.getPhoneNumber()).set(map);
-                            if (phone_number == null) {
-                                //add to database or delete from db update the state of messages
-                            } else if (!phone_number.equals(event.getPhoneNumber()))
-                                //add to database or delete from db or update the state of messages
-                                break;
+                            //add,delete,update DataBase
+                            dealWithEvent(event, phone_number);
+
+                            break;
                     }
                 }
             }
         });
         return Result.success();
+    }
+
+    //add,delete,update DataBase
+    public void dealWithEvent(WorkEvent event, String phoneNumberExcludedFromNotifications) {
+        DataBase dataBase = new DataBase(context);
+        List<String> mutedNumbers = dataBase.getAllMutedConversations();
+        String phoneNumber = event.getPhoneNumber();
+        if (event.getReadOrDelivered().equals(DataBase.MessageState.DELIVERED))
+            dataBase.updateMessageState(phoneNumber, DataBase.MessageState.DELIVERED);
+        else if (event.getReadOrDelivered().equals(DataBase.MessageState.READ))
+            dataBase.updateMessageState(phoneNumber, DataBase.MessageState.READ);
+        else if (event.isDeleteMessage())
+            dataBase.deleteMessage(phoneNumber, event.getMessageModel());
+        else if (event.isNewMessage()) {
+            if (!phoneNumber.equals(phoneNumberExcludedFromNotifications))
+                if (!mutedNumbers.contains(phoneNumber)) {
+                    //TODO:show an notifications
+                }
+            dataBase.addMessageInChatTable(event.getPhoneNumber(), event.getMessageModel());
+        }
     }
 }

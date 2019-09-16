@@ -10,6 +10,7 @@ import android.provider.BaseColumns;
 
 import androidx.annotation.Nullable;
 
+import com.example.whatsappclone.AssistanceClass.InternetCheck;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.GenralContact;
 import com.example.whatsappclone.WhatsApp_Models.MessageModel;
@@ -18,15 +19,28 @@ import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
 import com.example.whatsappclone.WhatsApp_Models.Status;
 import com.example.whatsappclone.WhatsApp_Models.StatusPrivacyModel;
 import com.example.whatsappclone.WhatsApp_Models.VisitStatus;
+import com.example.whatsappclone.WhatsApp_Models.WorkEvent;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DataBase extends SQLiteOpenHelper {
     private static final String TAG = "DataBase";
+
+    public enum MessageState {READ, DELIVERED, WAIT_NETWORK, NUN}
+
+    private static final int MUTE = 1;
+    private static final int NOT_MUTE = 0;
+    private static final int MESSAGE_DELETED = -1;
+    private static final int WAIT_NETWORK = 0;
+    private static final int ON_SERVER = 1;
+    private static final int DELIVERED = 2;
+    private static final int READ = 3;
     private static final int EMPTYCURSOR = 0;
     private static final String DB_NAME = "whatsApp_DB";
     private static final long MILLI_SECOND_DAY = 86400000;
@@ -34,6 +48,7 @@ public class DataBase extends SQLiteOpenHelper {
     private CollectionReference statusCollectionRef =
             firestore.collection("profile").document(UserSettings.PHONENUMBER).collection("status");
     private SQLiteDatabase database;
+    private ChatTableListener chatTableListener;
 
     /* Inner class that defines the ProfilesTable table contents  */
     private class ProfilesTable implements BaseColumns {
@@ -182,6 +197,42 @@ public class DataBase extends SQLiteOpenHelper {
 
     }
 
+    // hold all messages marked as WAIT_NETWORK
+    private class MessagesHolderTable implements BaseColumns {
+        private static final String TABLE_NAME = "messages_holder";
+        private static final String ID = "_id";
+        private static final String MESSAGE_UID = "message_uid";
+        private static final String PHONE_NUMBER = "phone_number"; //table name ***
+    }
+
+    private static final String SQL_CREATE_MESSAGE_HOLDER_TABLE =
+            "CREATE TABLE " + MessagesHolderTable.TABLE_NAME
+                    + " ("
+                    + MessagesHolderTable.ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + MessagesHolderTable.MESSAGE_UID + " TEXT,"
+                    + MessagesHolderTable.PHONE_NUMBER + " TEXT "//table name ***
+                    + ")";
+
+    private class ConversationTable implements BaseColumns {
+        private static final String TABLE_NAME = "conversations";
+        private static final String ID = "_id";
+        private static final String PHONE_NUMBER = "phone_number";
+        private static final String MUTE = "mute"; // if (1) mute notifications
+        private static final String MESSAGES_COUNT = "messages_count";
+        private static final String DATE = "date";
+    }
+
+    private static final String SQL_CREATE_CONVERSATION_TABLE =
+            "CREATE TABLE " + ConversationTable.TABLE_NAME
+                    + " ("
+                    + ConversationTable.ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + ConversationTable.PHONE_NUMBER + " TEXT,"
+                    + ConversationTable.MUTE + " INTEGER, " // if (1) mute notifications
+                    + ConversationTable.MESSAGES_COUNT + " INTEGER, "
+                    + ConversationTable.DATE + " INTEGER "
+                    + ")";
+
+
     public DataBase(@Nullable Context context) {
         super(context, DB_NAME, null, 1);
     }
@@ -193,6 +244,8 @@ public class DataBase extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_CONTACTS_TABLE);
         db.execSQL(SQL_CREATE_STATUS_PRIVACY_TABLE);
         db.execSQL(SQL_CREATE_STATUS_VISIT_TABLE);
+        db.execSQL(SQL_CREATE_MESSAGE_HOLDER_TABLE);
+        db.execSQL(SQL_CREATE_CONVERSATION_TABLE);
         //add user info to database the def info
         setDefaultUserInfo(new Contact(UserSettings.UID, UserSettings.PHONENUMBER, "Me", "online"), db);
         Profile_Status_img profileStatusImg = new Profile_Status_img(new ProfileImage(null, null)
@@ -728,13 +781,12 @@ public class DataBase extends SQLiteOpenHelper {
         database.delete(StatusVisit.TABLE_NAME, null, null);
     }
 
-    public void getTheLastUidForMessage(String phnone_number) {
-    }
 
-    public void addMessageInChatTable(String phnone_number, MessageModel messageModel) {
+    public void addMessageInChatTable(String userPhoneNumber, MessageModel messageModel) {
+        // userPhoneNumber it is the same table name
         database = this.getReadableDatabase();
         database.execSQL("CREATE TABLE IF NOT EXISTS "
-                + phnone_number + " ( "
+                + userPhoneNumber + " ( "
                 + ChatTable.ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + ChatTable.PHONE_NUMBER + " TEXT,"
                 + ChatTable.MESSAGE_UID + " TEXT, "
@@ -752,8 +804,288 @@ public class DataBase extends SQLiteOpenHelper {
                 + " )"
         );
         ContentValues contentValues = new ContentValues();
-//        contentValues.put();
-//        database.insert(phnone_number,)
-        //show notifection and send message that you are dilevert the message
+        contentValues.put(ChatTable.PHONE_NUMBER, messageModel.getPhoneNumber());
+        contentValues.put(ChatTable.MESSAGE_UID, messageModel.getMessageUid());
+        contentValues.put(ChatTable.MESSAGE, messageModel.getTextMessage());
+        contentValues.put(ChatTable.IMAGE_URL, messageModel.getImageUrl());
+        contentValues.put(ChatTable.VOICE_URL, messageModel.getVoiceUrl());
+        contentValues.put(ChatTable.VIDEO_URL, messageModel.getVideoUrl());
+        contentValues.put(ChatTable.FILE_URL, messageModel.getFileUrl());
+        if (messageModel.getPhoneNumber().equals(UserSettings.PHONENUMBER)) {
+            if (InternetCheck.isOnline())
+                contentValues.put(ChatTable.MESSAGE_STATE, ON_SERVER);
+            else {
+                contentValues.put(ChatTable.MESSAGE_STATE, WAIT_NETWORK);
+                addMessageToMessageHolder(messageModel.getMessageUid(), userPhoneNumber);
+            }
+        } else {
+            /*his message , i will use this value when i open chat activity and make every DELIVERED
+             * message for his message read and notify the other user that i read his message
+             */
+            contentValues.put(ChatTable.MESSAGE_STATE, DELIVERED);
+        }
+        contentValues.put(ChatTable.DATE, Long.parseLong(messageModel.getDate()));
+        database.insert(userPhoneNumber, null, contentValues);
+        // send message that you are delivered the message
+        WorkEvent workEvent;
+        if (messageModel.getPhoneNumber().equals(UserSettings.PHONENUMBER)) {
+            messageModel.setMessageState(ON_SERVER);
+            // set the event to new message
+            workEvent = new WorkEvent(UserSettings.PHONENUMBER, MessageState.NUN, true, false, messageModel);
+            /*
+             * add the message to user collection and other user collection
+             * Because each user has their own copy of conversations
+             * */
+            firestore.collection("messages").document(UserSettings.PHONENUMBER)
+                    .collection(userPhoneNumber).document(messageModel.getMessageUid()).set(messageModel);
+            firestore.collection("messages").document(userPhoneNumber)
+                    .collection(UserSettings.PHONENUMBER).document(messageModel.getMessageUid()).set(messageModel);
+        } else {
+            //tell the other user that you are received his message
+            firestore.collection("messages").document(userPhoneNumber)
+                    .collection(UserSettings.PHONENUMBER).document(messageModel.getMessageUid()).update("messageState", DELIVERED);
+            workEvent = new WorkEvent(UserSettings.PHONENUMBER, MessageState.DELIVERED, false, false, null);
+        }
+        firestore.collection("profile")
+                .document(messageModel.getPhoneNumber()).collection("event").add(workEvent);
+        // add or update conversation
+        addConversation(new Conversation(userPhoneNumber, NOT_MUTE, 0, 0), messageModel.getPhoneNumber());
+        // update chat recycler view items
+        chatTableListener.onAddNewMessage(workEvent.getMessageModel());
+    }
+
+    public void chatTableListener(ChatTableListener chatTableListener) {
+        this.chatTableListener = chatTableListener;
+    }
+
+    public interface ChatTableListener {
+        void onAddNewMessage(MessageModel messageModel);
+
+        void onDeleteOrChangeMessageState();
+    }
+
+    public void updateMessageState(String phoneNumber, MessageState messageState) {
+        database = this.getReadableDatabase();
+        //if the last message is the other user message then return
+        Cursor cursor = database.
+                rawQuery("SELECT * from " + phoneNumber + " ORDER BY " + ChatTable.DATE + " DESC LIMIT 1 "
+                        , null);
+        cursor.moveToFirst();
+        if (cursor.getString(cursor.getColumnIndex(ChatTable.PHONE_NUMBER)).equals(phoneNumber)) {
+            cursor.close();
+            return;
+        } else {
+            if (messageState.equals(MessageState.DELIVERED)) {
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(ChatTable.MESSAGE_STATE, DELIVERED);
+                database.update(phoneNumber
+                        , contentValues
+                        , ChatTable.PHONE_NUMBER + " =? " + " AND " + ChatTable.MESSAGE_STATE + " =? " + " OR " + ChatTable.MESSAGE_STATE + " =?"
+                        , new String[]{UserSettings.PHONENUMBER, String.valueOf(ON_SERVER), String.valueOf(WAIT_NETWORK)});
+            } else if (messageState.equals(MessageState.READ)) {
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(ChatTable.MESSAGE_STATE, READ);
+                database.update(phoneNumber
+                        , contentValues
+                        , ChatTable.PHONE_NUMBER + " =? " + " AND " + ChatTable.MESSAGE_STATE + " =? "
+                        , new String[]{UserSettings.PHONENUMBER, String.valueOf(DELIVERED)});
+            }
+            chatTableListener.onDeleteOrChangeMessageState();
+
+        }
+        cursor.close();
+    }
+
+    public void deleteMessage(String userPhoneNumber, MessageModel messageModel) {
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(ChatTable.MESSAGE, "This message was deleted.");
+        contentValues.put(ChatTable.MESSAGE_STATE, MESSAGE_DELETED);
+        database.update(userPhoneNumber
+                , contentValues
+                , ChatTable.MESSAGE_UID + " =? "
+                , new String[]{messageModel.getMessageUid()});
+        // if the message is my message i need to delete
+        if (messageModel.getPhoneNumber().equals(UserSettings.PHONENUMBER)) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("messageState", MESSAGE_DELETED);
+            map.put("textMessage", "This message was deleted.");
+            firestore.collection("messages").document(UserSettings.PHONENUMBER)
+                    .collection(userPhoneNumber).document(messageModel.getMessageUid()).update(map);
+            firestore.collection("messages").document(userPhoneNumber)
+                    .collection(UserSettings.PHONENUMBER).document(messageModel.getMessageUid()).update(map);
+            WorkEvent workEvent = new WorkEvent(UserSettings.PHONENUMBER, MessageState.NUN, false, true, messageModel);
+            firestore.collection("profile")
+                    .document(userPhoneNumber).collection("event").add(workEvent);
+
+        }
+        // update chat recycler view items using diffUtil
+        chatTableListener.onDeleteOrChangeMessageState();
+    }
+
+    private void addMessageToMessageHolder(String messageUid, String tableName) {
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(MessagesHolderTable.MESSAGE_UID, messageUid);
+        contentValues.put(MessagesHolderTable.PHONE_NUMBER, tableName);
+        database.insert(MessagesHolderTable.TABLE_NAME, null, contentValues);
+    }
+
+    public void updateAllHoledMessages() {
+        database = this.getReadableDatabase();
+        Cursor cursor = database.query(
+                MessagesHolderTable.TABLE_NAME
+                , null
+                , null
+                , null
+                , null
+                , null
+                , null);
+        if (cursor.getCount() == EMPTYCURSOR) {
+            cursor.close();
+        } else {
+            database = this.getWritableDatabase();
+            ContentValues contentValues = new ContentValues();
+            while (cursor.moveToNext()) {
+                String messageUdi = cursor.getString(cursor.getColumnIndex(MessagesHolderTable.MESSAGE_UID));
+                String phoneNumber = cursor.getString(cursor.getColumnIndex(MessagesHolderTable.PHONE_NUMBER));
+                contentValues.put(ChatTable.MESSAGE_STATE, ON_SERVER);
+                database.update(phoneNumber, contentValues
+                        , ChatTable.MESSAGE_UID + " =?" + " AND " + ChatTable.MESSAGE_STATE + " =?"
+                        , new String[]{messageUdi, String.valueOf(WAIT_NETWORK)});
+                updateMessageState(phoneNumber, MessageState.WAIT_NETWORK);
+            }
+            cursor.close();
+
+            // we do not need this messages anymore
+            database.delete(MessagesHolderTable.TABLE_NAME, null, null);
+
+        }
+
+    }
+
+    // Conversation class for hold
+    public static class Conversation {
+        private String phoenNamber;
+        private int mute;
+        private int messageCount;
+        private long date;
+
+        public Conversation(String phoneNumber, int mute, int messageCount, long date) {
+            this.phoenNamber = phoneNumber;
+            this.mute = mute;
+            this.messageCount = messageCount;
+            this.date = date;
+        }
+
+        public String getPhoneNumber() {
+            return phoenNamber;
+        }
+
+        public int getMute() {
+            return mute;
+        }
+
+        public int getMessageCount() {
+            return messageCount;
+        }
+
+        public long getDate() {
+            return date;
+        }
+    }
+
+    public void addConversation(Conversation conversation, String messageOwner) {
+        database = this.getReadableDatabase();
+        ContentValues contentValues = new ContentValues();
+        Calendar calendar = Calendar.getInstance();
+        Cursor cursor = database.query(
+                ConversationTable.TABLE_NAME
+                , null
+                , ConversationTable.PHONE_NUMBER + " =?"
+                , new String[]{conversation.phoenNamber}
+                , null
+                , null
+                , null);
+        database = this.getWritableDatabase();
+        // add one to the message count if is exist
+        if (cursor.getCount() != EMPTYCURSOR) {
+            cursor.moveToFirst();
+
+            if (!messageOwner.equals(UserSettings.PHONENUMBER)) {
+                int messageCount = cursor.getInt(cursor.getColumnIndex(ConversationTable.MESSAGES_COUNT));
+                ++messageCount;
+                contentValues.put(ConversationTable.MESSAGES_COUNT, messageCount);
+            } else {
+                contentValues.put(ConversationTable.MESSAGES_COUNT, 0);
+            }
+            contentValues.put(ConversationTable.DATE, calendar.getTimeInMillis());
+            database.update(
+                    ConversationTable.TABLE_NAME
+                    , contentValues
+                    , ConversationTable.PHONE_NUMBER + " =?"
+                    , new String[]{conversation.getPhoneNumber()});
+        } else {
+            //create row for this Conversation
+            contentValues.put(ConversationTable.PHONE_NUMBER, conversation.getPhoneNumber());
+            contentValues.put(ConversationTable.MUTE, NOT_MUTE);
+            if (messageOwner.equals(UserSettings.PHONENUMBER))
+                contentValues.put(ConversationTable.MESSAGES_COUNT, 0);
+            else
+                contentValues.put(ConversationTable.MESSAGES_COUNT, 1);
+            contentValues.put(ConversationTable.DATE, calendar.getTimeInMillis());
+            database.insert(
+                    ConversationTable.TABLE_NAME
+                    , null
+                    , contentValues);
+
+        }
+
+    }
+
+    public List<Conversation> getAllConversation() {
+        database = this.getReadableDatabase();
+        Conversation conversation;
+        List<Conversation> conversationList = new ArrayList<>();
+        Cursor cursor = database.query(
+                ConversationTable.TABLE_NAME
+                , null
+                , null
+                , null
+                , null
+                , null
+                , ConversationTable.DATE + " DESC");
+        if (cursor.getCount() == EMPTYCURSOR) {
+            cursor.close();
+            return conversationList;
+        } else {
+            while (cursor.moveToNext()) {
+                conversation = new Conversation(cursor.getString(cursor.getColumnIndex(ConversationTable.PHONE_NUMBER))
+                        , cursor.getInt(cursor.getColumnIndex(ConversationTable.MUTE))
+                        , cursor.getInt(cursor.getColumnIndex(ConversationTable.MESSAGES_COUNT))
+                        , cursor.getLong(cursor.getColumnIndex(ConversationTable.DATE)));
+                conversationList.add(conversation);
+            }
+            cursor.close();
+            return conversationList;
+        }
+    }
+
+    public List<String> getAllMutedConversations() {
+        database = this.getReadableDatabase();
+        List<String> numberList = new ArrayList<>();
+        Cursor cursor = database.query(
+                ConversationTable.TABLE_NAME
+                , new String[]{ConversationTable.PHONE_NUMBER}
+                , ConversationTable.MUTE + " =?"
+                , new String[]{String.valueOf(MUTE)}
+                , null
+                , null
+                , null);
+        while (cursor.moveToNext()) {
+            numberList.add(cursor.getString(cursor.getColumnIndex(ConversationTable.PHONE_NUMBER)));
+        }
+        cursor.close();
+        return numberList;
     }
 }

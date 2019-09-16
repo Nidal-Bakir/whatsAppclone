@@ -1,8 +1,10 @@
 package com.example.whatsappclone.WhatsApp_Models;
 
+import com.example.whatsappclone.WhatsAppDataBase.DataBase;
+
 public class WorkEvent {
     private String phoneNumber;
-    private boolean readOrDelivered;
+    private DataBase.MessageState readOrDelivered;
     private boolean deleteMessage;
     private boolean newMessage;
     private MessageModel messageModel;
@@ -10,7 +12,7 @@ public class WorkEvent {
     public WorkEvent() {
     }
 
-    public WorkEvent(String phoneNumber, boolean readOrDelivered, boolean newMessage,boolean deleteMessage , MessageModel messageModel) {
+    public WorkEvent(String phoneNumber, DataBase.MessageState readOrDelivered, boolean newMessage,boolean deleteMessage , MessageModel messageModel) {
         this.phoneNumber = phoneNumber;
         this.readOrDelivered = readOrDelivered;
         this.newMessage = newMessage;
@@ -26,7 +28,7 @@ public class WorkEvent {
         return phoneNumber;
     }
 
-    public boolean isReadOrDelivered() {
+    public DataBase.MessageState getReadOrDelivered() {
         return readOrDelivered;
     }
 

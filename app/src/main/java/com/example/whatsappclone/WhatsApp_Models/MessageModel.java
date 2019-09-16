@@ -8,7 +8,10 @@ public class MessageModel {
     private  String imageUrl ;
     private  String videoUrl ;
     private  String fileUrl ;
+    private int messageState;
     private  String date ;
+
+
 
     public MessageModel() {
     }
@@ -22,6 +25,13 @@ public class MessageModel {
         this.videoUrl = videoUrl;
         this.fileUrl=fileUrl;
         this.date = date;
+    }
+    public int getMessageState() {
+        return messageState;
+    }
+
+    public void setMessageState(int messageState) {
+        this.messageState = messageState;
     }
 
     public String getPhoneNumber() {

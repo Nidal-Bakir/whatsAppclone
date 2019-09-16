@@ -2,6 +2,7 @@ package com.example.whatsappclone.ActivityClass;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
@@ -16,6 +17,8 @@ import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.crashlytics.android.Crashlytics;
+import com.droidnet.DroidListener;
+import com.droidnet.DroidNet;
 import com.example.whatsappclone.Adapters.StatusAdapter;
 import com.example.whatsappclone.AssistanceClass.InternetCheck;
 import com.example.whatsappclone.AssistanceClass.OnSwipeListener;
@@ -25,8 +28,10 @@ import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
 import com.example.whatsappclone.WhatsAppFireStore.UploadMedia;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
+import com.example.whatsappclone.WhatsApp_Models.MessageModel;
 import com.example.whatsappclone.WhatsApp_Models.Status;
 import com.example.whatsappclone.WhatsApp_Models.VisitStatus;
+import com.example.whatsappclone.WhatsApp_Models.WorkEvent;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -85,14 +90,12 @@ import io.fabric.sdk.android.Fabric;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, DroidListener {
     private static final String TAG = "BaseChatActivity2";
     private FirebaseAuth auth = FirebaseAuth.getInstance();
     private static final int IMAGE_CHOOSER_REQUEST_CODE = 476;
@@ -124,6 +127,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private FragmentTransaction fragmentTransaction;
     private SyncContactsWithCloudDB contactsWithCloudDB;
     private String countryCode;
+    private DroidNet droidNet;
 
 
     @Override
@@ -137,8 +141,8 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             if (denidCount == 0)
                 startApp();
             else {
-                View view =findViewById(R.id.chat_floating_bt);
-                final Snackbar snackbar=Snackbar.make(view,"The app need all this permissions!!",Snackbar.LENGTH_INDEFINITE);
+                View view = findViewById(R.id.chat_floating_bt);
+                final Snackbar snackbar = Snackbar.make(view, "The app need all this permissions!!", Snackbar.LENGTH_INDEFINITE);
                 snackbar.setAction("Re Ask me", new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -277,6 +281,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
             finish();
         } else {
+            getSharedPreferences("firstTime", MODE_PRIVATE).edit().putBoolean("firstTime", false).apply();
             // ask for all Permissions
             if (checkAndRequestPermissions()) {
                 startApp();
@@ -286,19 +291,12 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
-                .CONNECTED).build();
-        OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
-                .setConstraints(constraints).build();
-        WorkManager.getInstance(getBaseContext()).enqueue(uploadWork);
-        contactsWithCloudDB.cancel(true);
-
-        super.onDestroy();
-    }
 
     private void startApp() {
+
+        // for listening for network connection state and Internet connectivity
+        DroidNet.init(this);
+        droidNet = DroidNet.getInstance();
         // inti class for upload media images and videos
         uploadMedia = new UploadMedia(this);
         statusCollectionRef = firestore.collection("profile").document(UserSettings.PHONENUMBER).collection("status");
@@ -375,8 +373,26 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                         .into(profileImage);
                 // status init
                 statusInit();
+                //update chat recycler view items
+                dataBase.chatTableListener(new DataBase.ChatTableListener() {
+                    @Override
+                    public void onAddNewMessage(MessageModel messageModel) {
 
+                    }
 
+                    @Override
+                    public void onDeleteOrChangeMessageState() {
+
+                    }
+                });
+                //listening for network connection state and Internet connectivity
+                droidNet.addInternetConnectivityListener(BaseChatActivity2.this);
+                //start the background service
+                Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
+                        .CONNECTED).build();
+                OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
+                        .setConstraints(constraints).build();
+                WorkManager.getInstance(getBaseContext()).enqueue(uploadWork);
             }
         });
     }
@@ -541,6 +557,32 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
     }
 
+    @Override
+    public void onInternetConnectivityChanged(boolean isConnected) {
+        if (isConnected)
+            dataBase.updateAllHoledMessages();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (!getSharedPreferences("firstTime", MODE_PRIVATE).getBoolean("firstTime", true)) {
+            Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
+                    .CONNECTED).build();
+            OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
+                    .setConstraints(constraints).build();
+            WorkManager.getInstance(getBaseContext()).enqueue(uploadWork);
+            contactsWithCloudDB.cancel(true);
+            droidNet.removeInternetConnectivityChangeListener(this);
+        }
+
+    }
+
+    @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+        DroidNet.getInstance().removeAllInternetConnectivityChangeListeners();
+    }
 
     @Override
     protected void onStart() {
@@ -615,7 +657,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 startActivity(new Intent(BaseChatActivity2.this, ContactsActivity.class));
                 break;
             case R.id.nav_settings:
-                startActivity(new Intent(BaseChatActivity2.this,SettingsActivity.class));
+                startActivity(new Intent(BaseChatActivity2.this, SettingsActivity.class));
 
                 break;
             case R.id.nav_share:
@@ -631,5 +673,6 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         drawer.closeDrawer(GravityCompat.START);
         return false;
     }
+
 
 }
