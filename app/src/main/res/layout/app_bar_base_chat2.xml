@@ -18,11 +18,13 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             app:popupTheme="@style/AppTheme.PopupOverlay" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/StatusRecyclerView"
             android:layout_width="match_parent"
-            android:background="@color/ActionBarwhite"
-            android:layout_height="100dp"/>
+            android:layout_height="100dp"
+            android:background="@color/white"
+            tools:listitem="@layout/item_status" />
 
     </com.google.android.material.appbar.AppBarLayout>
 

@@ -3,10 +3,10 @@ package com.example.whatsappclone.Adapters;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -19,7 +19,6 @@ import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.GlideException;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
-import com.example.whatsappclone.ActivityClass.BaseChatActivity2;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
@@ -44,7 +43,7 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
     public StatusAdapter(Context context, Activity activity, List<Status> statuses) {
         this.context = context;
-        this.activity=activity;
+        this.activity = activity;
         this.statuses = statuses;
         dataBase = new DataBase(context);
     }
@@ -68,6 +67,9 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             statuses.add(status);
             this.notifyItemInserted(statuses.size());
         }
+    }
+    public void onProfileImageChange(){
+        notifyItemChanged(0);
     }
 
     public void removeStatusFromList(String phone_number) {
@@ -155,13 +157,18 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (holder.getAdapterPosition()!=RecyclerView.NO_POSITION)
-                    onStatusItemClickListener.onStatusItemClickListener(statuses.get(holder.getAdapterPosition() - 1));
+                    if (holder.getAdapterPosition() != RecyclerView.NO_POSITION)
+                        onStatusItemClickListener.onStatusItemClickListener(statuses.get(holder.getAdapterPosition() - 1));
                 }
             });
 
         } else if (holder instanceof AddStatus) {
-            AddStatus addStatus = (AddStatus) holder;
+            final AddStatus addStatus = (AddStatus) holder;
+            Glide.with(context)
+                    .load(dataBase.getUserProfile(UserSettings.UID, null).getImageUrl())
+                    .placeholder(R.color.white)
+                    .error(R.drawable.ic_default_avatar_profile)
+                    .into(addStatus.profileImage);
             addStatus.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -206,14 +213,16 @@ public class StatusAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     }
 
     private class AddStatus extends RecyclerView.ViewHolder {
+        CircleImageView profileImage;
 
         public AddStatus(@NonNull View itemView) {
             super(itemView);
+            profileImage = itemView.findViewById(R.id.story_profile_image);
         }
     }
 
     private void showSnackBar() {
-        View view =activity.findViewById(R.id.chat_floating_bt);
+        View view = activity.findViewById(R.id.chat_floating_bt);
         Snackbar.make(view, "No internet connection !", Snackbar.LENGTH_LONG).show();
 
     }

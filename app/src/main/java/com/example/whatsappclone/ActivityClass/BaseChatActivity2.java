@@ -198,11 +198,13 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                                                         getSharedPreferences("oldImage", MODE_PRIVATE).edit().putString("image", uri).apply();
                                                         //hide the progressBar
                                                         profileProgressBar.setVisibility(View.GONE);
+                                                        statusAdapter.onProfileImageChange();
                                                         Toast.makeText(BaseChatActivity2.this, "your profile image has been updated ", Toast.LENGTH_SHORT).show();
                                                         return false;
                                                     }
                                                 })
                                                 .into(profileImage);
+
 
                                     }
                                 });
