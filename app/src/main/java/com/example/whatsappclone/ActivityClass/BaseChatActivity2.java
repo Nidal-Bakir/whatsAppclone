@@ -644,8 +644,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
         return super.onOptionsItemSelected(item);
     }
-
-    @SuppressWarnings("StatementWithEmptyBody")
+    
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks.
@@ -670,10 +669,12 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
 
         }
-
-
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
+
+        if (fragmentManager != null) {
+            if (fragmentManager.getBackStackEntryCount() == 0)
+                drawer.closeDrawer(GravityCompat.START);
+        } else drawer.closeDrawer(GravityCompat.START);
         return false;
     }
 

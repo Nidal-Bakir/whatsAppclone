@@ -2,9 +2,15 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/out_chat_image_parent"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="end"
+    android:layout_marginTop="8dp"
+    android:paddingBottom="8dp"
+    android:paddingStart="8dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="24dp"
     android:background="@drawable/shape_outgoing_bubble"
     android:orientation="vertical">
 
@@ -16,10 +22,6 @@
             android:id="@+id/out_chat_image_image_message"
             android:layout_width="250dp"
             android:layout_height="280dp"
-            android:layout_marginStart="4dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="24dp"
-            android:layout_marginBottom="4dp"
             android:scaleType="centerCrop"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="h,1:0.5"
@@ -33,9 +35,18 @@
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             android:orientation="horizontal"
             app:layout_constraintBottom_toBottomOf="@+id/out_chat_image_image_message"
             app:layout_constraintEnd_toEndOf="@+id/out_chat_image_image_message">
+
+            <ImageView
+                android:id="@+id/out_chat_message_state_image_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
+                android:layout_weight="1"
+                app:srcCompat="@drawable/ic_read" />
 
             <TextView
                 android:id="@+id/out_chat_time_image_message"
@@ -47,14 +58,34 @@
                 android:text="2:45 PM"
                 android:textColor="@color/white" />
 
-            <ImageView
-                android:id="@+id/out_chat_message_state_image_message"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                app:srcCompat="@drawable/ic_read" />
-
         </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/out_chat_video_event"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="1dp"
+            android:scaleType="centerCrop"
+            app:layout_constraintBottom_toBottomOf="@+id/out_chat_image_image_message"
+            app:layout_constraintEnd_toEndOf="@+id/out_chat_image_image_message"
+            app:layout_constraintStart_toStartOf="@+id/out_chat_image_image_message"
+            app:layout_constraintTop_toTopOf="@+id/out_chat_image_image_message"
+            app:srcCompat="@drawable/ic_upload" />
+
+        <fr.castorflex.android.circularprogressbar.CircularProgressBar
+            android:id="@+id/out_chat_video_progressBar"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:indeterminate="true"
+            app:cpb_color="@color/chatFloating"
+            app:cpb_max_sweep_angle="300"
+            app:cpb_min_sweep_angle="10"
+            app:cpb_rotation_speed="0.6"
+            app:cpb_stroke_width="4dp"
+            app:cpb_sweep_speed="0.6"
+            app:layout_constraintBottom_toBottomOf="@+id/out_chat_video_event"
+            app:layout_constraintEnd_toEndOf="@+id/out_chat_video_event" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </LinearLayout>

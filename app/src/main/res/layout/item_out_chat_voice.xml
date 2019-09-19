@@ -5,13 +5,13 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="end"
+    android:layout_marginTop="8dp"
+    android:background="@drawable/shape_outgoing_bubble"
     android:orientation="vertical">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="350dp"
-        android:layout_height="wrap_content"
-        android:background="@drawable/shape_outgoing_bubble">
-
+        android:layout_height="wrap_content">
         <LinearLayout
             android:id="@+id/linearLayout2"
             android:layout_width="wrap_content"
@@ -64,7 +64,7 @@
             app:layout_constraintVertical_bias="0.0" />
 
         <fr.castorflex.android.circularprogressbar.CircularProgressBar
-            android:id="@+id/out_chat_voice_progeresBar"
+            android:id="@+id/out_chat_video_progressBar"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:indeterminate="true"
@@ -107,10 +107,12 @@
             android:id="@+id/out_chat_voice_length"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="84dp"
+            android:layout_marginStart="8dp"
             android:layout_marginBottom="2dp"
             android:text="0:30"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/linearLayout2" />
+            app:layout_constraintStart_toEndOf="@+id/out_chat_voice_event"
+            app:layout_constraintTop_toBottomOf="@+id/out_chat_voice_voiceSeekBar"
+            app:layout_constraintVertical_bias="0.90999997" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </LinearLayout>

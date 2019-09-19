@@ -192,7 +192,6 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                             dataBase.upDateOnlineStatusForUser(profile.getUid(), null, profile.getOnLineStatus());
                             //update profile and status image
                             dataBase.upDateProfileImage(profile.getUid(), profile.getProfileImage());
-                            dataBase.upDateStatusImage(profile.getUid(), null, profile.getStatus());
                             //update contact name in status privacy table
                             dataBase.upDateContactNameInStatusPrivacy(contact.getContact_name(), profile.getUid(), null);
                         }

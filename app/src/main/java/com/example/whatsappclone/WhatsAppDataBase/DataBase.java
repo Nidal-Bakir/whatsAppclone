@@ -812,9 +812,11 @@ public class DataBase extends SQLiteOpenHelper {
         contentValues.put(ChatTable.VIDEO_URL, messageModel.getVideoUrl());
         contentValues.put(ChatTable.FILE_URL, messageModel.getFileUrl());
         if (messageModel.getPhoneNumber().equals(UserSettings.PHONENUMBER)) {
-            if (InternetCheck.isOnline())
-                contentValues.put(ChatTable.MESSAGE_STATE, ON_SERVER);
-            else {
+            if (InternetCheck.isOnline()) {
+                if (!messageModel.getTextMessage().equals(null))
+                    contentValues.put(ChatTable.MESSAGE_STATE, ON_SERVER);
+                else contentValues.put(ChatTable.MESSAGE_STATE, WAIT_NETWORK);
+            } else {
                 contentValues.put(ChatTable.MESSAGE_STATE, WAIT_NETWORK);
                 addMessageToMessageHolder(messageModel.getMessageUid(), userPhoneNumber);
             }
@@ -880,8 +882,8 @@ public class DataBase extends SQLiteOpenHelper {
                 contentValues.put(ChatTable.MESSAGE_STATE, DELIVERED);
                 database.update(phoneNumber
                         , contentValues
-                        , ChatTable.PHONE_NUMBER + " =? " + " AND " + ChatTable.MESSAGE_STATE + " =? " + " OR " + ChatTable.MESSAGE_STATE + " =?"
-                        , new String[]{UserSettings.PHONENUMBER, String.valueOf(ON_SERVER), String.valueOf(WAIT_NETWORK)});
+                        , ChatTable.PHONE_NUMBER + " =? " + " AND " + ChatTable.MESSAGE_STATE + " =? "
+                        , new String[]{UserSettings.PHONENUMBER, String.valueOf(ON_SERVER)});
             } else if (messageState.equals(MessageState.READ)) {
                 ContentValues contentValues = new ContentValues();
                 contentValues.put(ChatTable.MESSAGE_STATE, READ);
