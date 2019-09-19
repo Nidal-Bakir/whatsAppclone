@@ -274,10 +274,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         super.onCreate(savedInstanceState);
         Fabric.with(this, new Crashlytics());
         setContentView(R.layout.activity_base_chat2);
-        //i.g US this will use with libphonenumber lib
-        // to handle the numbers whose  doesn't have area code i.g(+1)
-        TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
-        countryCode = tm.getSimCountryIso();
+
         // open the login activity
         if (auth.getCurrentUser() == null) {
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
@@ -286,6 +283,10 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             getSharedPreferences("firstTime", MODE_PRIVATE).edit().putBoolean("firstTime", false).apply();
             // ask for all Permissions
             if (checkAndRequestPermissions()) {
+                //i.g US this will use with libphonenumber lib
+                // to handle the numbers whose  doesn't have area code i.g(+1)4
+                TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
+                countryCode = tm.getSimCountryIso();
                 startApp();
 
 
@@ -464,7 +465,6 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 });
                 // send notification that the user has open the status
                 if (!status.getPhone_number().equals(UserSettings.PHONENUMBER)) {
-
                     final String time = new SimpleDateFormat("h:mm a").format(new Date());
                     /*get the other user story and compare the uploading time if it's the same
                      * then send message that you are visit his/her story
@@ -475,6 +475,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                         public void onComplete(@NonNull Task<DocumentSnapshot> task) {
                             if (task.isSuccessful()) {
                                 Status otherUserStatus = task.getResult().toObject(Status.class);
+                                assert otherUserStatus != null;
                                 if (otherUserStatus.getDate().equals(status.getDate()))
                                     storyVisitRef = firestore.collection("profile")
                                             .document(status.getPhone_number()).collection("visitStatus");

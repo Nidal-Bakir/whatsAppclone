@@ -10,7 +10,7 @@ import android.provider.ContactsContract;
 import androidx.annotation.NonNull;
 
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
-import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
+import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.example.whatsappclone.WhatsApp_Models.StatusPrivacyModel;
 import com.example.whatsappclone.WhatsApp_Models.UserProfile;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -33,7 +33,6 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
     private List<DataBase.Contact> contacts;
     private OnSyncFinish onSyncFinish;
     private List<DataBase.Contact_Profile> contact_profiles = null;
-    private boolean force_sync;
     //i.g US this will use with libphonenumber lib
     // to handle the numbers whose  doesn't have area code i.g(+1)
 
@@ -90,7 +89,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
         for (DataBase.Contact contact : contacts) {
             if (dataBase.getContact(null, contact.getPhone_number()) != null) {
                 dataBase.updateContact(contact.getContact_name(), null, contact.getPhone_number());
-                dataBase.upDateContactNameInStatusPrivacy(contact.getContact_name(),null,contact.getPhone_number());
+                dataBase.upDateContactNameInStatusPrivacy(contact.getContact_name(), null, contact.getPhone_number());
             }
         }
     }
@@ -103,7 +102,7 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
         Cursor cursor = contentResolver.query(ContactsContract.Contacts.CONTENT_URI
                 , null, null, null, null);
         if ((cursor != null ? cursor.getCount() : 0) > 0) {
-            while (cursor != null && cursor.moveToNext()) {
+            while (cursor.moveToNext()) {
                 String id = cursor.getString(
                         cursor.getColumnIndex(ContactsContract.Contacts._ID));
                 String name = cursor.getString(cursor.getColumnIndex(
@@ -154,8 +153,8 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
 
     private void force_syncContacts(List<DataBase.Contact> contacts) {
         final DataBase dataBase = new DataBase(context);
-        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
-        CollectionReference profilesReference = firestore.collection("profile");
+        FirebaseFirestore fireStore = FirebaseFirestore.getInstance();
+        CollectionReference profilesReference = fireStore.collection("profile");
         for (final DataBase.Contact contact : contacts) {
             //add every contact to DB if they have an account
             profilesReference.whereEqualTo("phoneNumber", contact.getPhone_number())
@@ -175,12 +174,11 @@ public class SyncContactsWithCloudDB extends AsyncTask<Boolean, Void, Void> {
                             //add the contact to contacts table
                             dataBase.addContact(contact);
                             //add the profile image to the profile table and status image to status table
-                            Profile_Status_img profile_status = new Profile_Status_img(
-                                    profile.getProfileImage()
-                                    , profile.getStatus());
-                            dataBase.insetUserProfileAndStatus(profile.getUid()
+                            ProfileImage profileImage = profile.getProfileImage();
+                            dataBase.insertUserProfile(profile.getUid()
                                     , profile.getPhoneNumber()
-                                    , profile_status);
+                                    , profileImage);
+                            dataBase.addStatusImage(profile.getUid(), profile.getPhoneNumber());
                             //add the contact to the status privacy table
                             dataBase.addContactToStatusPrivacy(
                                     new StatusPrivacyModel(contact.getUID()

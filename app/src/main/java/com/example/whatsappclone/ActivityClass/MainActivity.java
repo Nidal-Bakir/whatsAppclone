@@ -25,8 +25,6 @@ import java.util.Arrays;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
-
-    private FirebaseAuth auth = FirebaseAuth.getInstance();
     private static final int RESULT_CODE = 757;
      LinearLayout loading;
     @Override

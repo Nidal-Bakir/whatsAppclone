@@ -42,8 +42,8 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import de.hdodenhof.circleimageview.CircleImageView;
-
-public class chatActivity extends AppCompatActivity implements  DroidListener {
+//implements  DroidListener
+public class chatActivity extends AppCompatActivity  {
     private String userUid = null;
     private String contactName = null;
     private String userPhoneNumber;
@@ -56,7 +56,7 @@ public class chatActivity extends AppCompatActivity implements  DroidListener {
     private ConstraintLayout messageBox;
     private CoordinatorLayout chatLayoutRoot;
     private EmojiPopup emojiPopup;
-    private DroidNet droidNet;
+    //private DroidNet droidNet;
 
     private enum SendState {TEXT, VOICE}
 
@@ -85,8 +85,8 @@ public class chatActivity extends AppCompatActivity implements  DroidListener {
         else EmojiManager.install(new IosEmojiProvider());
         setContentView(R.layout.activity_chat);
         // for listening for network connection state and Internet connectivity
-        DroidNet.init(this);
-        droidNet = DroidNet.getInstance();
+//        DroidNet.init(this);
+//        droidNet = DroidNet.getInstance();
         Toolbar toolbar = findViewById(R.id.chat_toolbar);
         setSupportActionBar(toolbar);
         setTitle(null);
@@ -196,11 +196,11 @@ public class chatActivity extends AppCompatActivity implements  DroidListener {
 
     }
 
-    @Override
-    public void onInternetConnectivityChanged(boolean isConnected) {
-        if (isConnected)
-            dataBase.updateAllHoledMessages();
-    }
+//    @Override
+//    public void onInternetConnectivityChanged(boolean isConnected) {
+//        if (isConnected)
+//            dataBase.updateAllHoledMessages();
+//    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -230,13 +230,13 @@ public class chatActivity extends AppCompatActivity implements  DroidListener {
     @Override
     public void onLowMemory() {
         super.onLowMemory();
-        DroidNet.getInstance().removeAllInternetConnectivityChangeListeners();
+       // DroidNet.getInstance().removeAllInternetConnectivityChangeListeners();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        droidNet.removeInternetConnectivityChangeListener(this);
+       // droidNet.removeInternetConnectivityChangeListener(this);
     }
     @Override
     public void onBackPressed() {

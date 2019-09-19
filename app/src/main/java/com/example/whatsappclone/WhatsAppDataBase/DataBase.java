@@ -7,7 +7,9 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.provider.BaseColumns;
+import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.example.whatsappclone.AssistanceClass.InternetCheck;
@@ -15,11 +17,12 @@ import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.GenralContact;
 import com.example.whatsappclone.WhatsApp_Models.MessageModel;
 import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
-import com.example.whatsappclone.WhatsApp_Models.Profile_Status_img;
 import com.example.whatsappclone.WhatsApp_Models.Status;
 import com.example.whatsappclone.WhatsApp_Models.StatusPrivacyModel;
 import com.example.whatsappclone.WhatsApp_Models.VisitStatus;
 import com.example.whatsappclone.WhatsApp_Models.WorkEvent;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -248,9 +251,8 @@ public class DataBase extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_CONVERSATION_TABLE);
         //add user info to database the def info
         setDefaultUserInfo(new Contact(UserSettings.UID, UserSettings.PHONENUMBER, "Me", "online"), db);
-        Profile_Status_img profileStatusImg = new Profile_Status_img(new ProfileImage(null, null)
-                , new Status(null, null, null));
-        setDefaultUserInfo(UserSettings.UID, UserSettings.PHONENUMBER, profileStatusImg, db);
+        ProfileImage profileImage = new ProfileImage(null, null);
+        setDefaultUserInfo(UserSettings.UID, UserSettings.PHONENUMBER, profileImage, db);
         setDefaultUserInfo(new StatusPrivacyModel(UserSettings.UID, UserSettings.PHONENUMBER, "Me", true), db);
     }
 
@@ -273,30 +275,16 @@ public class DataBase extends SQLiteOpenHelper {
     }
 
     // her is the same
-    private void setDefaultUserInfo(String UID, String phoneNumber, Profile_Status_img profile_status_img, SQLiteDatabase db) {
+    private void setDefaultUserInfo(String UID, String phoneNumber, ProfileImage profileImage, SQLiteDatabase db) {
         ContentValues profileContentValues = new ContentValues();
-        ContentValues statusContentValues = new ContentValues();
         //for profile table
         profileContentValues.put(ProfilesTable.UID, UID);
         profileContentValues.put(ProfilesTable.PHONE_NUMBER, phoneNumber);
-        //for status table
-        statusContentValues.put(StatusTable.UID, UID);
-        statusContentValues.put(StatusTable.PHONE_NUMBER, phoneNumber);
-        //handel if the profile don't have profile image
-        if (profile_status_img.getProfileImage() != null) {
-            profileContentValues.put(ProfilesTable.IMAGE_PATH, profile_status_img.getProfilePath());
-            profileContentValues.put(ProfilesTable.IMAGE_URL, profile_status_img.getProfileUrl());
-        }
-        //handel if the profile don't status
-        if (profile_status_img.getStatus() != null) {
-            statusContentValues.put(StatusTable.STATUS_PATH, profile_status_img.getStatusPath());
-            statusContentValues.put(StatusTable.STATUS_URL, profile_status_img.getStatusUrl());
-            statusContentValues.put(StatusTable.DATE, profile_status_img.getStatusDate());
+        if (profileImage != null) {
+            profileContentValues.put(ProfilesTable.IMAGE_PATH, profileImage.getImagePath());
+            profileContentValues.put(ProfilesTable.IMAGE_URL, profileImage.getImageUrl());
         }
         db.insert(ProfilesTable.TABLE_NAME, null, profileContentValues);
-        db.insert(StatusTable.TABLE_NAME, null, statusContentValues);
-
-
     }
 
     private void setDefaultUserInfo(StatusPrivacyModel statusPrivacyModel, SQLiteDatabase db) {
@@ -395,7 +383,12 @@ public class DataBase extends SQLiteOpenHelper {
                     else
                         statusList.add(status);
                 } else {
-                    statusCollectionRef.document(phone_number).delete();
+                    statusCollectionRef.document(phone_number).delete().addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            Log.d(TAG, "onComplete: " + task.isSuccessful());
+                        }
+                    });
                 }
             }
         cursor.close();
@@ -420,29 +413,29 @@ public class DataBase extends SQLiteOpenHelper {
         return true;
     }
 
-    public void insetUserProfileAndStatus(String UID, String phoneNumber, Profile_Status_img profile_status_img) {
+    public void insertUserProfile(String UID, String phoneNumber, ProfileImage profileImage) {
         database = this.getWritableDatabase();
         ContentValues profileContentValues = new ContentValues();
-        ContentValues statusContentValues = new ContentValues();
+        //ContentValues statusContentValues = new ContentValues();
         //for profile table
         profileContentValues.put(ProfilesTable.UID, UID);
         profileContentValues.put(ProfilesTable.PHONE_NUMBER, phoneNumber);
         //for status table
-        statusContentValues.put(StatusTable.UID, UID);
-        statusContentValues.put(StatusTable.PHONE_NUMBER, phoneNumber);
+//        statusContentValues.put(StatusTable.UID, UID);
+//        statusContentValues.put(StatusTable.PHONE_NUMBER, phoneNumber);
         //handel if the profile don't have profile image
-        if (profile_status_img.getProfileImage() != null) {
-            profileContentValues.put(ProfilesTable.IMAGE_PATH, profile_status_img.getProfilePath());
-            profileContentValues.put(ProfilesTable.IMAGE_URL, profile_status_img.getProfileUrl());
+        if (profileImage != null) {
+            profileContentValues.put(ProfilesTable.IMAGE_PATH, profileImage.getImagePath());
+            profileContentValues.put(ProfilesTable.IMAGE_URL, profileImage.getImageUrl());
         }
         //handel if the profile don't status
-        if (profile_status_img.getStatus() != null) {
-            statusContentValues.put(StatusTable.STATUS_PATH, profile_status_img.getStatusPath());
-            statusContentValues.put(StatusTable.STATUS_URL, profile_status_img.getStatusUrl());
-            statusContentValues.put(StatusTable.DATE, profile_status_img.getStatusDate());
-        }
+//        if (profile_status_img.getStatus() != null) {
+//            statusContentValues.put(StatusTable.STATUS_PATH, profile_status_img.getStatusPath());
+//            statusContentValues.put(StatusTable.STATUS_URL, profile_status_img.getStatusUrl());
+//            statusContentValues.put(StatusTable.DATE, profile_status_img.getStatusDate());
+//        }
         database.insert(ProfilesTable.TABLE_NAME, null, profileContentValues);
-        database.insert(StatusTable.TABLE_NAME, null, statusContentValues);
+        //.insert(StatusTable.TABLE_NAME, null, statusContentValues);
 
 
     }
@@ -463,7 +456,7 @@ public class DataBase extends SQLiteOpenHelper {
     }
 
     public void upDateStatusImage(String UID, String phone_number, Status status) {
-        database = this.getWritableDatabase();
+        database = this.getReadableDatabase();
         ContentValues contentValues = new ContentValues();
         if (status != null) {
             contentValues.put(StatusTable.STATUS_PATH, status.getStatusPath());
@@ -481,9 +474,16 @@ public class DataBase extends SQLiteOpenHelper {
                     , StatusTable.PHONE_NUMBER + "= ?"
                     , new String[]{phone_number});
         }
-
-
     }
+
+    public void addStatusImage(String UID, String phone_number) {
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(StatusTable.UID, UID);
+        contentValues.put(StatusTable.PHONE_NUMBER, phone_number);
+        database.insert(StatusTable.TABLE_NAME, null, contentValues);
+    }
+
 
     public Contact getContact(String UID, String phone_number) {
         database = this.getReadableDatabase();

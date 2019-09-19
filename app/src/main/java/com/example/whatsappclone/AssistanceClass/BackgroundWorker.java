@@ -1,18 +1,13 @@
 package com.example.whatsappclone.AssistanceClass;
 
 import android.content.Context;
-import android.os.CountDownTimer;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.work.Data;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
-import com.example.whatsappclone.WhatsAppFireStore.GetMessages;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.WorkEvent;
 import com.google.firebase.firestore.CollectionReference;
@@ -26,7 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 

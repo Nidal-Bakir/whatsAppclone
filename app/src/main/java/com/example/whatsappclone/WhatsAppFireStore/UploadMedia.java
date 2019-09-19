@@ -3,6 +3,7 @@ package com.example.whatsappclone.WhatsAppFireStore;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -29,6 +30,7 @@ import java.util.List;
 public class UploadMedia {
     private Context context;
     private DataBase dataBase;
+    private static final String TAG = "UploadMedia";
     private OnProfileUploadCompleteListener onProfileUploadCompleteListener;
     private OnStatusUploadCompleteListener onStatusUploadCompleteListener;
     private final String PROFILE_FOLDER = "Profile";
@@ -153,7 +155,12 @@ public class UploadMedia {
         String myPhoneNumber = UserSettings.PHONENUMBER;
         for (String number : phone_numbers) {
             statusCollectionReference = profilesRef.document(number).collection("status");
-            statusCollectionReference.document(myPhoneNumber).delete();
+            statusCollectionReference.document(myPhoneNumber).delete().addOnCompleteListener(new OnCompleteListener<Void>() {
+                @Override
+                public void onComplete(@NonNull Task<Void> task) {
+                    Log.d(TAG, "onComplete: "+task.isSuccessful());
+                }
+            });
         }
     }
 
