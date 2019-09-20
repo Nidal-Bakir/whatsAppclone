@@ -59,6 +59,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@+id/list_chat_profile_image"
         app:layout_constraintTop_toBottomOf="@+id/list_chat_contact_name"
@@ -86,15 +87,17 @@
         android:gravity="center"
         android:text="99"
         android:textColor="@color/white"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/list_chat_date" />
 
     <ImageView
-        android:id="@+id/list_chat_volume_off"
+        android:id="@+id/list_chat_mute"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/list_chat_message_count"
         app:layout_constraintTop_toBottomOf="@+id/list_chat_date"

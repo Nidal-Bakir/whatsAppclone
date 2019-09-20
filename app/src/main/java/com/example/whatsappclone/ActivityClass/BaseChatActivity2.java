@@ -44,6 +44,7 @@ import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
@@ -128,6 +129,8 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private SyncContactsWithCloudDB contactsWithCloudDB;
     private String countryCode;
     private DroidNet droidNet;
+    ConstraintLayout noConversation;
+    private RecyclerView conversationRecyclerView;
 
 
     @Override
@@ -274,7 +277,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         super.onCreate(savedInstanceState);
         Fabric.with(this, new Crashlytics());
         setContentView(R.layout.activity_base_chat2);
-
+        noConversation = findViewById(R.id.no_chat_image);
         // open the login activity
         if (auth.getCurrentUser() == null) {
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
@@ -314,7 +317,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         setSupportActionBar(toolbar);
         setTitle("WhatsApp");
         //open the contacts activity
-        FloatingActionButton fab = findViewById(R.id.chat_floating_bt);
+        final FloatingActionButton fab = findViewById(R.id.chat_floating_bt);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -376,10 +379,18 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                         .into(profileImage);
                 // status init
                 statusInit();
+                //conversation RecyclerView
+                conversationRecyclerView = findViewById(R.id.conversationRecycler);
+                conversationRecyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext(), RecyclerView.VERTICAL, false));
+                List<DataBase.Conversation> conversationList = dataBase.getAllConversation();
+                if (conversationList.isEmpty())
+                    noConversation.setVisibility(View.VISIBLE);
+                else noConversation.setVisibility(View.GONE);
+
                 //update chat recycler view items
                 dataBase.chatTableListener(new DataBase.ChatTableListener() {
                     @Override
-                    public void onAddNewMessage(MessageModel messageModel) {
+                    public void onAddNewMessage(MessageModel messageModel, DataBase.Conversation conversation) {
 
                     }
 
@@ -644,7 +655,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
         return super.onOptionsItemSelected(item);
     }
-    
+
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks.

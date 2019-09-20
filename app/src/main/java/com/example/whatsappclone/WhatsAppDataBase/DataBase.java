@@ -6,6 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Bundle;
 import android.provider.BaseColumns;
 import android.util.Log;
 
@@ -37,13 +38,13 @@ public class DataBase extends SQLiteOpenHelper {
 
     public enum MessageState {READ, DELIVERED, WAIT_NETWORK, NUN}
 
-    private static final int MUTE = 1;
-    private static final int NOT_MUTE = 0;
+    public static final int MUTE = 1;
+    public static final int NOT_MUTE = 0;
     private static final int MESSAGE_DELETED = -1;
-    private static final int WAIT_NETWORK = 0;
-    private static final int ON_SERVER = 1;
-    private static final int DELIVERED = 2;
-    private static final int READ = 3;
+    public static final int WAIT_NETWORK = 0;
+    public static final int ON_SERVER = 1;
+    public static final int DELIVERED = 2;
+    public static final int READ = 3;
     private static final int EMPTYCURSOR = 0;
     private static final String DB_NAME = "whatsApp_DB";
     private static final long MILLI_SECOND_DAY = 86400000;
@@ -512,7 +513,7 @@ public class DataBase extends SQLiteOpenHelper {
             );
         }
         cursor.close();
-        return null;
+        return new Contact(null, phone_number, phone_number, null);
     }
 
     //get all contacts Who own an account
@@ -851,9 +852,9 @@ public class DataBase extends SQLiteOpenHelper {
         firestore.collection("profile")
                 .document(messageModel.getPhoneNumber()).collection("event").add(workEvent);
         // add or update conversation
-        addConversation(new Conversation(userPhoneNumber, NOT_MUTE, 0, 0), messageModel.getPhoneNumber());
+        Conversation conversation = addConversation(new Conversation(userPhoneNumber, NOT_MUTE, 0, 0), messageModel.getPhoneNumber());
         // update chat recycler view items
-        chatTableListener.onAddNewMessage(workEvent.getMessageModel());
+        chatTableListener.onAddNewMessage(workEvent.getMessageModel(), conversation);
     }
 
     public void chatTableListener(ChatTableListener chatTableListener) {
@@ -861,9 +862,56 @@ public class DataBase extends SQLiteOpenHelper {
     }
 
     public interface ChatTableListener {
-        void onAddNewMessage(MessageModel messageModel);
+        void onAddNewMessage(MessageModel messageModel, Conversation conversation);
 
         void onDeleteOrChangeMessageState();
+    }
+
+    public Bundle getLastMessage(String phoneNumber) {
+        Bundle bundle = new Bundle();
+        database = this.getReadableDatabase();
+        // phoneNumber <=> tableName
+        Cursor cursor = database.
+                rawQuery("SELECT * from " + phoneNumber + " ORDER BY " + ChatTable.DATE + " DESC LIMIT 1 "
+                        , null);
+        if (cursor.getCount() == EMPTYCURSOR) {
+            cursor.close();
+            return null;
+        } else {
+            cursor.moveToFirst();
+            String messageOwner = cursor.getString(cursor.getColumnIndex(ChatTable.PHONE_NUMBER));
+            bundle.putBoolean("isMyMessage", messageOwner.equals(UserSettings.PHONENUMBER));
+            String message = cursor.getString(cursor.getColumnIndex(ChatTable.MESSAGE));
+            int messageState = cursor.getInt(cursor.getColumnIndex(ChatTable.MESSAGE_STATE));
+
+            String voiceUrl = cursor.getString(cursor.getColumnIndex(ChatTable.VOICE_URL));
+            String voicePath = cursor.getString(cursor.getColumnIndex(ChatTable.VOICE_PATH));
+
+            String imageUrl = cursor.getString(cursor.getColumnIndex(ChatTable.IMAGE_URL));
+            String imagePath = cursor.getString(cursor.getColumnIndex(ChatTable.IMAGE_PATH));
+
+            String videoUrl = cursor.getString(cursor.getColumnIndex(ChatTable.VIDEO_URL));
+            String videoPath = cursor.getString(cursor.getColumnIndex(ChatTable.VIDEO_PATH));
+
+            String fileUrl = cursor.getString(cursor.getColumnIndex(ChatTable.FILE_URL));
+            String filePath = cursor.getString(cursor.getColumnIndex(ChatTable.FILE_PATH));
+
+            if (!message.equals("")) {
+                bundle.putString("message", message);
+            } else if (!imagePath.equals("") || !imageUrl.equals("")) {
+                bundle.putString("message", "Image");
+            } else if (!voicePath.equals("") || !voiceUrl.equals("")) {
+                bundle.putString("message", "Voice message");
+            } else if (!videoPath.equals("") || !videoUrl.equals("")) {
+                bundle.putString("message", "Video");
+            } else if (!filePath.equals("") || !fileUrl.equals("")) {
+                bundle.putString("message", "File");
+            }
+
+            bundle.putInt("messageState", messageState);
+            return bundle;
+        }
+
     }
 
     public void updateMessageState(String phoneNumber, MessageState messageState) {
@@ -997,7 +1045,7 @@ public class DataBase extends SQLiteOpenHelper {
         }
     }
 
-    public void addConversation(Conversation conversation, String messageOwner) {
+    public Conversation addConversation(Conversation conversation, String messageOwner) {
         database = this.getReadableDatabase();
         ContentValues contentValues = new ContentValues();
         Calendar calendar = Calendar.getInstance();
@@ -1042,7 +1090,36 @@ public class DataBase extends SQLiteOpenHelper {
                     , contentValues);
 
         }
+        cursor = database.
+                rawQuery("SELECT * from " + ConversationTable.TABLE_NAME + " ORDER BY " + ConversationTable.DATE + " DESC LIMIT 1 "
+                        , null);
+        String phoneNumber = cursor.getString(cursor.getColumnIndex(ConversationTable.PHONE_NUMBER));
+        int messageCount = cursor.getInt(cursor.getColumnIndex(ConversationTable.MESSAGES_COUNT));
+        int mute = cursor.getInt(cursor.getColumnIndex(ConversationTable.MUTE));
+        long date = cursor.getLong(cursor.getColumnIndex(ConversationTable.DATE));
+        Conversation conversation1 = new Conversation(phoneNumber, mute, messageCount, date);
+        cursor.close();
+        return conversation1;
 
+    }
+
+    public void reSetMessageCount(String phoneNumber) {
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(ConversationTable.MESSAGES_COUNT, 0);
+        database.update(
+                ConversationTable.TABLE_NAME
+                , contentValues
+                , ConversationTable.PHONE_NUMBER + " =?"
+                , new String[]{phoneNumber});
+    }
+
+    public void deleteConversation(Conversation conversation) {
+        database = this.getWritableDatabase();
+        database.delete(
+                ConversationTable.TABLE_NAME
+                , ConversationTable.PHONE_NUMBER + " =?"
+                , new String[]{conversation.getPhoneNumber()});
     }
 
     public List<Conversation> getAllConversation() {
