@@ -19,6 +19,7 @@ import com.bumptech.glide.request.target.Target;
 import com.crashlytics.android.Crashlytics;
 import com.droidnet.DroidListener;
 import com.droidnet.DroidNet;
+import com.example.whatsappclone.Adapters.ConversationAdapter;
 import com.example.whatsappclone.Adapters.StatusAdapter;
 import com.example.whatsappclone.AssistanceClass.InternetCheck;
 import com.example.whatsappclone.AssistanceClass.OnSwipeListener;
@@ -386,7 +387,8 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 if (conversationList.isEmpty())
                     noConversation.setVisibility(View.VISIBLE);
                 else noConversation.setVisibility(View.GONE);
-
+                ConversationAdapter conversationAdapter = new ConversationAdapter(getApplicationContext(), conversationList);
+                conversationRecyclerView.setAdapter(conversationAdapter);
                 //update chat recycler view items
                 dataBase.chatTableListener(new DataBase.ChatTableListener() {
                     @Override

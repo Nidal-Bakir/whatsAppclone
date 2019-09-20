@@ -277,15 +277,19 @@ public class DataBase extends SQLiteOpenHelper {
 
     // her is the same
     private void setDefaultUserInfo(String UID, String phoneNumber, ProfileImage profileImage, SQLiteDatabase db) {
-        ContentValues profileContentValues = new ContentValues();
+        ContentValues contentValues = new ContentValues();
         //for profile table
-        profileContentValues.put(ProfilesTable.UID, UID);
-        profileContentValues.put(ProfilesTable.PHONE_NUMBER, phoneNumber);
-        if (profileImage != null) {
-            profileContentValues.put(ProfilesTable.IMAGE_PATH, profileImage.getImagePath());
-            profileContentValues.put(ProfilesTable.IMAGE_URL, profileImage.getImageUrl());
-        }
-        db.insert(ProfilesTable.TABLE_NAME, null, profileContentValues);
+        contentValues.put(ProfilesTable.UID, UID);
+        contentValues.put(ProfilesTable.PHONE_NUMBER, phoneNumber);
+        contentValues.put(ProfilesTable.IMAGE_PATH, profileImage.getImagePath());
+        contentValues.put(ProfilesTable.IMAGE_URL, profileImage.getImageUrl());
+        db.insert(ProfilesTable.TABLE_NAME, null, contentValues);
+        // for status image
+        contentValues = new ContentValues();
+        contentValues.put(StatusTable.UID, UID);
+        contentValues.put(StatusTable.PHONE_NUMBER, phoneNumber);
+        db.insert(StatusTable.TABLE_NAME, null, contentValues);
+
     }
 
     private void setDefaultUserInfo(StatusPrivacyModel statusPrivacyModel, SQLiteDatabase db) {
@@ -327,8 +331,10 @@ public class DataBase extends SQLiteOpenHelper {
                     , null
                     , null
                     , null);
-        if (cursor.getCount() == EMPTYCURSOR)
-            return null;
+        if (cursor.getCount() == EMPTYCURSOR) {
+            cursor.close();
+            return new ProfileImage(null, null);
+        }
         cursor.moveToFirst();  //move to the element
         String imagePath = cursor.getString(cursor.getColumnIndex(ProfilesTable.IMAGE_PATH));
         String imageUrl = cursor.getString(cursor.getColumnIndex(ProfilesTable.IMAGE_URL));
@@ -417,28 +423,16 @@ public class DataBase extends SQLiteOpenHelper {
     public void insertUserProfile(String UID, String phoneNumber, ProfileImage profileImage) {
         database = this.getWritableDatabase();
         ContentValues profileContentValues = new ContentValues();
-        //ContentValues statusContentValues = new ContentValues();
         //for profile table
         profileContentValues.put(ProfilesTable.UID, UID);
         profileContentValues.put(ProfilesTable.PHONE_NUMBER, phoneNumber);
-        //for status table
-//        statusContentValues.put(StatusTable.UID, UID);
-//        statusContentValues.put(StatusTable.PHONE_NUMBER, phoneNumber);
+
         //handel if the profile don't have profile image
         if (profileImage != null) {
             profileContentValues.put(ProfilesTable.IMAGE_PATH, profileImage.getImagePath());
             profileContentValues.put(ProfilesTable.IMAGE_URL, profileImage.getImageUrl());
         }
-        //handel if the profile don't status
-//        if (profile_status_img.getStatus() != null) {
-//            statusContentValues.put(StatusTable.STATUS_PATH, profile_status_img.getStatusPath());
-//            statusContentValues.put(StatusTable.STATUS_URL, profile_status_img.getStatusUrl());
-//            statusContentValues.put(StatusTable.DATE, profile_status_img.getStatusDate());
-//        }
         database.insert(ProfilesTable.TABLE_NAME, null, profileContentValues);
-        //.insert(StatusTable.TABLE_NAME, null, statusContentValues);
-
-
     }
 
     public void upDateProfileImage(String UID, ProfileImage profileImage) {
@@ -513,7 +507,7 @@ public class DataBase extends SQLiteOpenHelper {
             );
         }
         cursor.close();
-        return new Contact(null, phone_number, phone_number, null);
+        return null;
     }
 
     //get all contacts Who own an account
@@ -852,9 +846,9 @@ public class DataBase extends SQLiteOpenHelper {
         firestore.collection("profile")
                 .document(messageModel.getPhoneNumber()).collection("event").add(workEvent);
         // add or update conversation
-        Conversation conversation = addConversation(new Conversation(userPhoneNumber, NOT_MUTE, 0, 0), messageModel.getPhoneNumber());
+         Conversation conversation = addConversation(new Conversation(userPhoneNumber, NOT_MUTE, 0, 0), messageModel.getPhoneNumber());
         // update chat recycler view items
-        chatTableListener.onAddNewMessage(workEvent.getMessageModel(), conversation);
+         chatTableListener.onAddNewMessage(workEvent.getMessageModel(), conversation);
     }
 
     public void chatTableListener(ChatTableListener chatTableListener) {
@@ -1090,6 +1084,7 @@ public class DataBase extends SQLiteOpenHelper {
                     , contentValues);
 
         }
+        database = this.getReadableDatabase();
         cursor = database.
                 rawQuery("SELECT * from " + ConversationTable.TABLE_NAME + " ORDER BY " + ConversationTable.DATE + " DESC LIMIT 1 "
                         , null);

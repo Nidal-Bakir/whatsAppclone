@@ -27,7 +27,7 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
     private Context context;
     private DataBase dataBase;
 
-    public ConversationAdapter(List<DataBase.Conversation> conversationList, Context context) {
+    public ConversationAdapter(Context context, List<DataBase.Conversation> conversationList) {
         this.conversationList = conversationList;
         this.context = context;
         dataBase = new DataBase(context);
@@ -99,14 +99,15 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
                 .error(R.drawable.ic_default_avatar_profile)
                 .into(holder.profileImage);
         //set the contact name
-        holder.contactName.setText(dataBase.getContact(null, phoneNumber).getContact_name());
+        if (dataBase.getContact(null, phoneNumber) == null)
+            holder.contactName.setText(phoneNumber);
         // set message count
-        int messaegCount = conversationList.get(holder.getAdapterPosition()).getMessageCount();
-        if (messaegCount == 0) {
+        int messageCount = conversationList.get(holder.getAdapterPosition()).getMessageCount();
+        if (messageCount == 0) {
             holder.messageCount.setVisibility(View.GONE);
         } else {
             holder.messageCount.setVisibility(View.VISIBLE);
-            holder.messageCount.setText(String.valueOf(messaegCount));
+            holder.messageCount.setText(String.valueOf(messageCount));
         }
         // show icon if the contact is muted
         if (conversationList.get(holder.getAdapterPosition()).getMute() == DataBase.MUTE)
