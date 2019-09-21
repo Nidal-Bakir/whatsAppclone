@@ -39,13 +39,13 @@ public class VisitStatusAdapter extends RecyclerView.Adapter<VisitStatusAdapter.
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         holder.name.setText(dataBase.getContact(null
-                , visitStatusList.get(position).getPhone_number()).getContact_name());
+                , visitStatusList.get(holder.getAdapterPosition()).getPhone_number()).getContact_name());
         Glide.with(context)
                 .load(dataBase.getUserProfile(null
-                        , visitStatusList.get(position).getPhone_number()).getImageUrl())
+                        , visitStatusList.get(holder.getAdapterPosition()).getPhone_number()).getImageUrl())
                 .error(R.drawable.ic_default_avatar_profile)
                 .into(holder.profileImage);
-        holder.time.setText(visitStatusList.get(position).getTime());
+        holder.time.setText(visitStatusList.get(holder.getAdapterPosition()).getTime());
     }
 
     @Override

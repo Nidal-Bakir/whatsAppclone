@@ -73,21 +73,21 @@ public class PrivacyAdapter extends RecyclerView.Adapter<PrivacyAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, final int position) {
         Glide.with(context)
-                .load(dataBase.getUserProfile(statusPrivacyList.get(position).getUID(),null))
+                .load(dataBase.getUserProfile(statusPrivacyList.get(holder.getAdapterPosition()).getUID(),null).getImageUrl())
                 .error(R.drawable.ic_default_avatar_profile)
                 .into(holder.image);
-        holder.name.setText(statusPrivacyList.get(position).getContact_name());
-        holder.checkBox.setChecked(statusPrivacyList.get(position).isAuthorized());
+        holder.name.setText(statusPrivacyList.get(holder.getAdapterPosition()).getContact_name());
+        holder.checkBox.setChecked(statusPrivacyList.get(holder.getAdapterPosition()).isAuthorized());
         holder.checkBox.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onItemClickListener.onCheckChanged(position,holder.checkBox.isChecked());
+                onItemClickListener.onCheckChanged(holder.getAdapterPosition(),holder.checkBox.isChecked());
             }
         });
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onItemClickListener.onClick(position);
+                onItemClickListener.onClick(holder.getAdapterPosition());
             }
         });
     }

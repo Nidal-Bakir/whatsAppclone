@@ -26,6 +26,7 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
     private List<DataBase.Conversation> conversationList;
     private Context context;
     private DataBase dataBase;
+    private OnConversationItemClickListener onConversationItemClickListener;
 
     public ConversationAdapter(Context context, List<DataBase.Conversation> conversationList) {
         this.conversationList = conversationList;
@@ -33,6 +34,14 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
         dataBase = new DataBase(context);
     }
 
+    public void updateMessage(String phoneNumber){
+        for (int i = 0; i < conversationList.size(); i++) {
+            if (conversationList.get(i).getPhoneNumber().equals(phoneNumber)) {
+                notifyItemChanged(i);
+                break;
+            }
+        }
+    }
 
     public void addConversation(DataBase.Conversation conversation) {
 
@@ -66,12 +75,12 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
 
     @Override
     public void onBindViewHolder(@NonNull final ViewHolder holder, int position) {
-        String phoneNumber = conversationList.get(holder.getAdapterPosition()).getPhoneNumber();
+        final String phoneNumber = conversationList.get(holder.getAdapterPosition()).getPhoneNumber();
         Bundle lastMessageBundle = dataBase.getLastMessage(phoneNumber);
         if (lastMessageBundle != null) {
             if (lastMessageBundle.getBoolean("isMyMessage")) {
-                int integerMessaegState = lastMessageBundle.getInt("messageState");
-                switch (integerMessaegState) {
+                int integerMessageState = lastMessageBundle.getInt("messageState");
+                switch (integerMessageState) {
                     case DataBase.WAIT_NETWORK:
                         holder.messageState.setImageResource(R.drawable.ic_watch);
                         break;
@@ -99,7 +108,8 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
                 .error(R.drawable.ic_default_avatar_profile)
                 .into(holder.profileImage);
         //set the contact name
-        if (dataBase.getContact(null, phoneNumber) == null)
+        final DataBase.Contact contact=dataBase.getContact(null, phoneNumber);
+        if ( contact== null)
             holder.contactName.setText(phoneNumber);
         // set message count
         int messageCount = conversationList.get(holder.getAdapterPosition()).getMessageCount();
@@ -123,9 +133,17 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
             public void onClick(View v) {
                 // reset the message count
                 dataBase.reSetMessageCount(conversationList.get(holder.getAdapterPosition()).getPhoneNumber());
+                onConversationItemClickListener.onClick(contact,phoneNumber);
             }
         });
 
+    }
+    public void onConversationItemClickListener(OnConversationItemClickListener onConversationItemClickListener){
+        this.onConversationItemClickListener=onConversationItemClickListener;
+    }
+    public interface OnConversationItemClickListener{
+        // we will use the phone number if the user do not know the new Contact (Anonymous number )
+        void onClick(DataBase.Contact contact,String PhoneNumber);
     }
 
     @Override

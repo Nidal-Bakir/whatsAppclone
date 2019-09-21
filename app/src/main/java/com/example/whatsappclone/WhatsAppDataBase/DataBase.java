@@ -15,7 +15,7 @@ import androidx.annotation.Nullable;
 
 import com.example.whatsappclone.AssistanceClass.InternetCheck;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
-import com.example.whatsappclone.WhatsApp_Models.GenralContact;
+import com.example.whatsappclone.WhatsApp_Models.GeneralContact;
 import com.example.whatsappclone.WhatsApp_Models.MessageModel;
 import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.example.whatsappclone.WhatsApp_Models.Status;
@@ -103,7 +103,7 @@ public class DataBase extends SQLiteOpenHelper {
 
 
     //this class for handel the contact result
-    public static class Contact extends GenralContact {
+    public static class Contact extends GeneralContact {
         private String online_status;
 
         public Contact(String UID, String phone_number, String contact_name, String online_status) {
@@ -390,12 +390,22 @@ public class DataBase extends SQLiteOpenHelper {
                     else
                         statusList.add(status);
                 } else {
+                    database = this.getWritableDatabase();
                     statusCollectionRef.document(phone_number).delete().addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
                             Log.d(TAG, "onComplete: " + task.isSuccessful());
                         }
                     });
+                    ContentValues contentValues = new ContentValues();
+                    contentValues.put(StatusTable.STATUS_PATH, "");
+                    contentValues.put(StatusTable.STATUS_URL, "");
+                    //delete the status from DB
+                    database.update(
+                            StatusTable.TABLE_NAME
+                            , contentValues
+                            , StatusTable.PHONE_NUMBER + " =?"
+                            , new String[]{phone_number});
                 }
             }
         cursor.close();
@@ -683,11 +693,11 @@ public class DataBase extends SQLiteOpenHelper {
         boolean authorized;
         Cursor cursor = database.query(PrivacyTable.TABLE_NAME
                 , null
-                , StatusTable.UID + " != ?"
+                , PrivacyTable.UID + " != ?"
                 , new String[]{UserSettings.UID}
                 , null
                 , null
-                , null);
+                , PrivacyTable.AUTHORIZED);
         while (cursor.moveToNext()) {
             //if the authorized filed == 1 then the contact authorized
             // else the contact not authorized
@@ -846,9 +856,9 @@ public class DataBase extends SQLiteOpenHelper {
         firestore.collection("profile")
                 .document(messageModel.getPhoneNumber()).collection("event").add(workEvent);
         // add or update conversation
-         Conversation conversation = addConversation(new Conversation(userPhoneNumber, NOT_MUTE, 0, 0), messageModel.getPhoneNumber());
+        Conversation conversation = addConversation(new Conversation(userPhoneNumber, NOT_MUTE, 0, 0), messageModel.getPhoneNumber());
         // update chat recycler view items
-         chatTableListener.onAddNewMessage(workEvent.getMessageModel(), conversation);
+        chatTableListener.onAddNewMessage(workEvent.getMessageModel(), conversation);
     }
 
     public void chatTableListener(ChatTableListener chatTableListener) {
@@ -858,7 +868,34 @@ public class DataBase extends SQLiteOpenHelper {
     public interface ChatTableListener {
         void onAddNewMessage(MessageModel messageModel, Conversation conversation);
 
-        void onDeleteOrChangeMessageState();
+        void onChangeMessageState(String otherUserPhoneNumber);
+
+        void onDeleteMessage(String otherUserPhoneNumber, MessageModel messageModel);
+    }
+
+    public List<String> getAllOtherUserMessagesMarkedAsDELIVERED(String phoneNumber) {
+        database = this.getReadableDatabase();
+        List<String> UidMessagesList = new ArrayList<>();
+        Cursor cursor = database.query(
+                phoneNumber
+                , new String[]{ChatTable.MESSAGE_UID}
+                , ChatTable.PHONE_NUMBER + " =? " + ChatTable.MESSAGE_STATE + " =? "
+                , new String[]{phoneNumber, String.valueOf(DELIVERED)}
+                , null
+                , null
+                , null);
+        while (cursor.moveToNext()) {
+            UidMessagesList.add(cursor.getString(cursor.getColumnIndex(ChatTable.MESSAGE_UID)));
+        }
+        cursor.close();
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(ChatTable.MESSAGE_STATE, READ);
+        database.update(phoneNumber
+                , contentValues
+                , ChatTable.PHONE_NUMBER + " =? "
+                , new String[]{phoneNumber});
+        return UidMessagesList;
     }
 
     public Bundle getLastMessage(String phoneNumber) {
@@ -934,12 +971,17 @@ public class DataBase extends SQLiteOpenHelper {
                         , ChatTable.PHONE_NUMBER + " =? " + " AND " + ChatTable.MESSAGE_STATE + " =? "
                         , new String[]{UserSettings.PHONENUMBER, String.valueOf(DELIVERED)});
             }
-            chatTableListener.onDeleteOrChangeMessageState();
+            chatTableListener.onChangeMessageState(phoneNumber);
 
         }
         cursor.close();
     }
 
+    /**
+     * @param userPhoneNumber The phone Number of the user to delete the message from his conversation
+     * @param messageModel    The message is expected to be deleted,
+     *                        and contains the number of the user who wants to delete the message
+     */
     public void deleteMessage(String userPhoneNumber, MessageModel messageModel) {
         database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
@@ -964,7 +1006,7 @@ public class DataBase extends SQLiteOpenHelper {
 
         }
         // update chat recycler view items using diffUtil
-        chatTableListener.onDeleteOrChangeMessageState();
+        chatTableListener.onDeleteMessage(userPhoneNumber, messageModel);
     }
 
     private void addMessageToMessageHolder(String messageUid, String tableName) {
@@ -1010,20 +1052,20 @@ public class DataBase extends SQLiteOpenHelper {
 
     // Conversation class for hold
     public static class Conversation {
-        private String phoenNamber;
+        private String phoneNamber;
         private int mute;
         private int messageCount;
         private long date;
 
         public Conversation(String phoneNumber, int mute, int messageCount, long date) {
-            this.phoenNamber = phoneNumber;
+            this.phoneNamber = phoneNumber;
             this.mute = mute;
             this.messageCount = messageCount;
             this.date = date;
         }
 
         public String getPhoneNumber() {
-            return phoenNamber;
+            return phoneNamber;
         }
 
         public int getMute() {
@@ -1047,7 +1089,7 @@ public class DataBase extends SQLiteOpenHelper {
                 ConversationTable.TABLE_NAME
                 , null
                 , ConversationTable.PHONE_NUMBER + " =?"
-                , new String[]{conversation.phoenNamber}
+                , new String[]{conversation.phoneNamber}
                 , null
                 , null
                 , null);

@@ -387,28 +387,50 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 if (conversationList.isEmpty())
                     noConversation.setVisibility(View.VISIBLE);
                 else noConversation.setVisibility(View.GONE);
-                ConversationAdapter conversationAdapter = new ConversationAdapter(getApplicationContext(), conversationList);
+                final ConversationAdapter conversationAdapter = new ConversationAdapter(getApplicationContext(), conversationList);
                 conversationRecyclerView.setAdapter(conversationAdapter);
+                conversationAdapter.onConversationItemClickListener(new ConversationAdapter.OnConversationItemClickListener() {
+                    @Override
+                    public void onClick(DataBase.Contact contact,String phoneNumber) {
+                        Intent intent=new Intent(BaseChatActivity2.this,chatActivity.class);
+                        if (contact!=null) {
+                            intent.putExtra("phone_number", contact.getPhone_number());
+                            intent.putExtra("uid", contact.getUID());
+                            intent.putExtra("contact_name", contact.getContact_name());
+                        }else {
+                            intent.putExtra("phone_number",phoneNumber);
+                            intent.putExtra("uid","");
+                            intent.putExtra("contact_name",phoneNumber);
+                        }
+                        startActivity(intent);
+                    }
+                });
                 //update chat recycler view items
                 dataBase.chatTableListener(new DataBase.ChatTableListener() {
                     @Override
                     public void onAddNewMessage(MessageModel messageModel, DataBase.Conversation conversation) {
-
+                        conversationAdapter.addConversation(conversation);
                     }
 
                     @Override
-                    public void onDeleteOrChangeMessageState() {
+                    public void onChangeMessageState(String otherUserPhoneNumber) {
+                        conversationAdapter.updateMessage(otherUserPhoneNumber);
+                    }
 
+                    @Override
+                    public void onDeleteMessage(String otherUserPhoneNumber, MessageModel messageModel) {
+                        conversationAdapter.updateMessage(otherUserPhoneNumber);
                     }
                 });
                 //listening for network connection state and Internet connectivity
                 droidNet.addInternetConnectivityListener(BaseChatActivity2.this);
                 //start the background service
+                WorkManager.getInstance(getBaseContext()).cancelAllWorkByTag("messagesListener");
                 Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
                         .CONNECTED).build();
-                OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
-                        .setConstraints(constraints).build();
-                WorkManager.getInstance(getBaseContext()).enqueue(uploadWork);
+                OneTimeWorkRequest worker = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
+                        .setConstraints(constraints).addTag("messagesListener").build();
+                WorkManager.getInstance(getBaseContext()).enqueue(worker);
             }
         });
     }
@@ -583,11 +605,11 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     protected void onDestroy() {
         super.onDestroy();
         if (!getSharedPreferences("firstTime", MODE_PRIVATE).getBoolean("firstTime", true)) {
-            Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
-                    .CONNECTED).build();
-            OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
-                    .setConstraints(constraints).build();
-            WorkManager.getInstance(getBaseContext()).enqueue(uploadWork);
+//            Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
+//                    .CONNECTED).build();
+//            OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
+//                    .setConstraints(constraints).addTag("").build();
+//            WorkManager.getInstance(getBaseContext()).enqueue(uploadWork);
             contactsWithCloudDB.cancel(true);
             droidNet.removeInternetConnectivityChangeListener(this);
         }

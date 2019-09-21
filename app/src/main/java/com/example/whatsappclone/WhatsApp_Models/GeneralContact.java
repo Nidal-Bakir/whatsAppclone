@@ -1,11 +1,11 @@
 package com.example.whatsappclone.WhatsApp_Models;
 
-public class GenralContact {
+public class GeneralContact {
     private String UID;
     private String phone_number;
     private String contact_name;
 
-    public GenralContact(String UID, String phone_number, String contact_name) {
+    public GeneralContact(String UID, String phone_number, String contact_name) {
         this.UID = UID;
         this.phone_number = phone_number;
         this.contact_name = contact_name;
