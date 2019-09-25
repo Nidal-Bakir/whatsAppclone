@@ -339,7 +339,6 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private void startApp() {
 
         // for listening for network connection state and Internet connectivity
-        DroidNet.init(this);
         droidNet = DroidNet.getInstance();
         // inti class for upload media images and videos
         uploadMedia = new UploadMedia(this);
@@ -452,12 +451,10 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                     }
                 });
 
-                droidNet.addInternetConnectivityListener(BaseChatActivity2.this);
-
 
             }
         });
-
+        droidNet.addInternetConnectivityListener(BaseChatActivity2.this);
     }
 
     private boolean checkAndRequestPermissions() {
@@ -697,6 +694,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         if (isConnected)
             dataBase.updateAllHoledMessages();
         BaseChatActivity2.isConnected = isConnected;
+        Log.d(TAG, "onInternetConnectivityChanged: " + isConnected);
     }
 
     @Override
@@ -718,11 +716,6 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
 
     }
 
-    @Override
-    public void onLowMemory() {
-        super.onLowMemory();
-        DroidNet.getInstance().removeAllInternetConnectivityChangeListeners();
-    }
 
     @Override
     protected void onStart() {
@@ -739,9 +732,17 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     }
 
     @Override
+    protected void onRestart() {
+        super.onRestart();
+        droidNet.addInternetConnectivityListener(this);
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
+        droidNet.removeInternetConnectivityChangeListener(this);
         registration.remove();
+
 
     }
 

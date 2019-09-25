@@ -126,7 +126,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                         messageList.get(i).setMessageState(DataBase.READ);
                         break;
                     case ON_SERVER:
-                        messageList.get(i).setMessageState(DataBase.ON_SERVER);
+                        if (messageList.get(i).getMessageState() == DataBase.WAIT_NETWORK)
+                            messageList.get(i).setMessageState(DataBase.ON_SERVER);
                         break;
                     case MESSAGE_DELETED:
                         messageList.get(i).setMessageState(DataBase.MESSAGE_DELETED);

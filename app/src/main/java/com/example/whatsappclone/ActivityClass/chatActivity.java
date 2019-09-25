@@ -123,14 +123,12 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
         else EmojiManager.install(new IosEmojiProvider());
         setContentView(R.layout.activity_chat);
         notificationClass = new NotificationClass(this);
-
+        dataBase = new DataBase(this);
         // for listening for network connection state and Internet connectivity
-        DroidNet.init(this);
         droidNet = DroidNet.getInstance();
         Toolbar toolbar = findViewById(R.id.chat_toolbar);
         setSupportActionBar(toolbar);
         setTitle(null);
-        dataBase = new DataBase(this);
         Intent intent = getIntent();
         otherUserPhoneNumberThisChat = intent.getStringExtra("phone_number");
         userUid = intent.getStringExtra("uid");
@@ -335,6 +333,7 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
                     Toast.makeText(chatActivity.this, "click and hold to record your voice", Toast.LENGTH_SHORT).show();
             }
         });
+        droidNet.addInternetConnectivityListener(this);
     }
 
     void eventListener() {
@@ -411,6 +410,8 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
         if (isConnected) {
             dataBase.updateAllHoledMessages();
         }
+        BaseChatActivity2.isConnected = isConnected;
+        Log.d(TAG, "onInternetConnectivityChanged: "+isConnected);
     }
 
     @Override
@@ -438,11 +439,7 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public void onLowMemory() {
-        super.onLowMemory();
-        DroidNet.getInstance().removeAllInternetConnectivityChangeListeners();
-    }
+
 
     @Override
     protected void onDestroy() {
@@ -453,6 +450,7 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
     @Override
     public void onBackPressed() {
         dataBase.reSetMessageCount(otherUserPhoneNumberThisChat);
+        droidNet.removeInternetConnectivityChangeListener(this);
         super.onBackPressed();
 
     }
