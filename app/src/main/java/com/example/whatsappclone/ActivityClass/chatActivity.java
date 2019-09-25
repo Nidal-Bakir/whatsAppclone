@@ -6,6 +6,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.work.Constraints;
 import androidx.work.Data;
@@ -16,18 +17,25 @@ import androidx.work.WorkManager;
 import com.bumptech.glide.Glide;
 import com.droidnet.DroidListener;
 import com.droidnet.DroidNet;
-import com.example.whatsappclone.AssistanceClass.BackgroundWorker;
+import com.example.whatsappclone.Adapters.ChatAdapter;
+import com.example.whatsappclone.NotificationsPackage.NotificationClass;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.MessageModel;
+import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.Message;
 import com.example.whatsappclone.WhatsApp_Models.UserProfile;
 import com.example.whatsappclone.WhatsApp_Models.WorkEvent;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.vanniktech.emoji.EmojiEditText;
 import com.vanniktech.emoji.EmojiManager;
 import com.vanniktech.emoji.EmojiPopup;
@@ -38,6 +46,7 @@ import com.vanniktech.emoji.twitter.TwitterEmojiProvider;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -46,6 +55,7 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.Menu;
 
@@ -53,8 +63,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Stack;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -76,6 +92,7 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
     private DroidNet droidNet;
     private FirebaseFirestore fireStore = FirebaseFirestore.getInstance();
     private CollectionReference profilesCollection = fireStore.collection("profile");
+    private NotificationClass notificationClass;
 
 
     // for send button
@@ -105,6 +122,8 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
             }
         else EmojiManager.install(new IosEmojiProvider());
         setContentView(R.layout.activity_chat);
+        notificationClass = new NotificationClass(this);
+
         // for listening for network connection state and Internet connectivity
         DroidNet.init(this);
         droidNet = DroidNet.getInstance();
@@ -135,7 +154,12 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
         attachFile = findViewById(R.id.attach);
         emoji = findViewById(R.id.chat_emoji);
         send = findViewById(R.id.chat_send);
+        recyclerView = findViewById(R.id.chat_recycler_view);
+        // delete the stored Notification for this user
+        dataBase.deleteNotificationForUser(otherUserPhoneNumberThisChat);
         //set profile image for the user
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(1);
         if (contactName.equals(otherUserPhoneNumberThisChat)) {
             // Anonymous number get the profile image from his Profile on fireStore
             profilesCollection.document(otherUserPhoneNumberThisChat).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
@@ -230,53 +254,163 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
                 emojiPopup.toggle();
             }
         });
-        // cancelAllWorkers and start new one and send other user phone number for denied the notifications
-        WorkManager.getInstance(getBaseContext()).cancelAllWorkByTag("messagesListener");
-        Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
-                .CONNECTED).build();
-        Data data = new Data.Builder()
-                .putString("phone_number", otherUserPhoneNumberThisChat)
-                .build();
-        OneTimeWorkRequest worker = new OneTimeWorkRequest
-                .Builder(BackgroundWorker.class)
-                .setInputData(data)
-                .setConstraints(constraints)
-                .addTag("messagesListener")
-                .build();
-        WorkManager.getInstance(getBaseContext()).enqueue(worker);
 
+        // set up the recycler view for chat
+        List<Message> messageList = dataBase.getChatMessages(otherUserPhoneNumberThisChat, 50);
+        final ChatAdapter chatAdapter = new ChatAdapter(this, messageList);
+        final LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
+        if (chatAdapter.getItemCount() > 15)
+            linearLayoutManager.setStackFromEnd(true);
+        recyclerView.setLayoutManager(linearLayoutManager);
+        chatAdapter.registerAdapterDataObserver(new RecyclerView.AdapterDataObserver() {
+            @Override
+            public void onItemRangeInserted(int positionStart, int itemCount) {
+                super.onItemRangeInserted(positionStart, itemCount);
+                recyclerView.smoothScrollToPosition(chatAdapter.getItemCount() - 1);
+                if (chatAdapter.getItemCount() > 15)
+                    linearLayoutManager.setStackFromEnd(true);
+
+            }
+        });
+        recyclerView.setAdapter(chatAdapter);
+
+        // listener for data base add,update and delete
         dataBase.chatTableListener(new DataBase.ChatTableListener() {
             @Override
             public void onAddNewMessage(MessageModel messageModel, DataBase.Conversation conversation) {
                 if (messageModel.getPhoneNumber().equals(otherUserPhoneNumberThisChat) || messageModel.getPhoneNumber().equals(UserSettings.PHONENUMBER)) {
-                    WorkEvent workEvent = new WorkEvent(UserSettings.PHONENUMBER, DataBase.MessageState.READ, false, false, null);
-                    fireStore.collection("profile")
-                            .document(otherUserPhoneNumberThisChat).collection("event").add(workEvent);
+                    //if the message from other use then tell him thar u are read his message
+                    if (messageModel.getPhoneNumber().equals(otherUserPhoneNumberThisChat)) {
+                        WorkEvent workEvent = new WorkEvent(UserSettings.PHONENUMBER, DataBase.MessageState.READ, false, false, messageModel);
+                        fireStore.collection("profile")
+                                .document(otherUserPhoneNumberThisChat).collection("event").add(workEvent);
+
+                    }
+                    // add the message to the adapter
+                    chatAdapter.addMessage(messageModel);
                 }
             }
 
             @Override
-            public void onChangeMessageState(String otherUserPhoneNumber) {
+            public void onChangeMessageState(String otherUserPhoneNumber, String messageUid, DataBase.MessageState messageState) {
                 if (otherUserPhoneNumber.equals(otherUserPhoneNumberThisChat)) {
-
+                    // update your message in adapter based on message uid
+                    chatAdapter.updateMessage(messageUid, messageState);
                 }
             }
 
             @Override
             public void onDeleteMessage(String otherUserPhoneNumber, MessageModel messageModel) {
                 if (otherUserPhoneNumber.equals(otherUserPhoneNumberThisChat)) {
-
+                    // update your message in adapter based on message uid
+                    chatAdapter.updateMessage(messageModel.getMessageUid(), DataBase.MessageState.MESSAGE_DELETED);
                 }
             }
         });
+        // attach the listener for messages
+        eventListener();
+
+        // tell the other user that your are read his messages
         UpdateOtherUserMessageState otherUserMessageState = new UpdateOtherUserMessageState(this, otherUserPhoneNumberThisChat);
         otherUserMessageState.execute();
+
+        // send button listener
+        send.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (sendState == SendState.TEXT) {
+                    Calendar calendar = Calendar.getInstance();
+                    String textMessage = String.valueOf(messageEditText.getText());
+                    MessageModel messageModel = new MessageModel(UserSettings.PHONENUMBER
+                            , fireStore.collection("messages").document().getId()
+                            , textMessage
+                            , null
+                            , null
+                            , null
+                            , null
+                            , String.valueOf(calendar.getTimeInMillis()));
+                    messageEditText.setText("");
+                    dataBase.addMessageInChatTable(otherUserPhoneNumberThisChat, messageModel, false);
+                } else
+                    Toast.makeText(chatActivity.this, "click and hold to record your voice", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
+
+    void eventListener() {
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        final CollectionReference conversation = firestore.collection("profile")
+                .document(UserSettings.PHONENUMBER).collection("conversation");
+        /*ref to chat collection so when any one want to talk to me will send to with collection message
+         * with his number and the listener below will catch the number and get the messages from fireStore
+         * to data base
+         */
+        final CollectionReference eventRef = firestore.collection("profile")
+                .document(UserSettings.PHONENUMBER).collection("event");
+        eventRef.addSnapshotListener(this, new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@javax.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @javax.annotation.Nullable FirebaseFirestoreException e) {
+                if (e != null) {
+                    Log.e(TAG, "onEvent: ", e);
+                    return;
+                }
+                for (DocumentChange documentChange : Objects.requireNonNull(queryDocumentSnapshots).getDocumentChanges()) {
+                    switch (documentChange.getType()) {
+                        case ADDED:
+                            WorkEvent event = documentChange.getDocument().toObject(WorkEvent.class);
+                            //delete the document from collection
+                            eventRef.document(documentChange.getDocument().getId()).delete();
+                            Log.d(TAG, "ruing... :");
+                            // add the contact phone number to conversation (users who you have conversation with them )
+                            Map<String, String> map = new HashMap<>();
+                            map.put("phone_number", event.getPhoneNumber());
+                            conversation.document(event.getPhoneNumber()).set(map);
+                            //add,delete,update DataBase
+                            dealWithEvent(event);
+
+                            break;
+                        case MODIFIED:
+                            Log.d(TAG, "onEvent: " + "mod");
+                            break;
+                        case REMOVED:
+                            Log.d(TAG, "onEvent: removed");
+                            break;
+                    }
+                }
+            }
+        });
+    }
+
+    //add,delete,update DataBase
+    public void dealWithEvent(final WorkEvent event) {
+
+        List<String> mutedNumbers = dataBase.getAllMutedConversations();
+        String phoneNumber = event.getPhoneNumber();
+        if (event.getReadOrDelivered().equals(DataBase.MessageState.DELIVERED))
+            dataBase.updateMessageState(phoneNumber, DataBase.MessageState.DELIVERED, event.getMessageModel().getMessageUid(), false);
+        else if (event.getReadOrDelivered().equals(DataBase.MessageState.READ))
+            dataBase.updateMessageState(phoneNumber, DataBase.MessageState.READ, event.getMessageModel().getMessageUid(), false);
+        else if (event.isDeleteMessage())
+            dataBase.deleteMessage(phoneNumber, event.getMessageModel(), false);
+        else if (event.isNewMessage()) {
+            if (!phoneNumber.equals(otherUserPhoneNumberThisChat))
+                if (!mutedNumbers.contains(phoneNumber)) {
+                    // show notification
+                    if (dataBase.pushNotificationInDataBase(event.getMessageModel())) {
+                        notificationClass.notifyUser();
+                    }
+                }
+            dataBase.addMessageInChatTable(event.getPhoneNumber(), event.getMessageModel(), false);
+
+        }
+    }
+
 
     @Override
     public void onInternetConnectivityChanged(boolean isConnected) {
-        if (isConnected)
+        if (isConnected) {
             dataBase.updateAllHoledMessages();
+        }
     }
 
     @Override
@@ -323,8 +457,14 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
 
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        eventListener();
+    }
+
     // up date the message state for local dataBase and FireStore
-    class UpdateOtherUserMessageState extends AsyncTask<Void, Void, Void> {
+    private static class UpdateOtherUserMessageState extends AsyncTask<Void, Void, Void> {
         private DataBase dataBase;
         private String otherPhoneNumber;
         private FirebaseFirestore fireStore = FirebaseFirestore.getInstance();
@@ -337,21 +477,20 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
         @Override
         protected Void doInBackground(Void... voids) {
             WorkEvent workEvent;
-            Bundle bundle = dataBase.getLastMessage(otherPhoneNumber);
-            if (!bundle.getBoolean("isMyMessage") && bundle.getInt("messageState") != DataBase.READ) {
-                List<String> uidMessages = dataBase.getAllOtherUserMessagesMarkedAsDELIVERED(otherPhoneNumber);
-                //tell the other user that you are Read his message and update the message state on fire store
-                // for your copy of chat and other user.
-                for (String messageUid : uidMessages) {
-                    fireStore.collection("messages").document(otherPhoneNumber)
-                            .collection(UserSettings.PHONENUMBER).document(messageUid).update("messageState", DataBase.READ);
-                    fireStore.collection("messages").document(UserSettings.PHONENUMBER)
-                            .collection(otherPhoneNumber).document(messageUid).update("messageState", DataBase.READ);
-                    workEvent = new WorkEvent(UserSettings.PHONENUMBER, DataBase.MessageState.READ, false, false, null);
-                    fireStore.collection("profile")
-                            .document(otherPhoneNumber).collection("event").add(workEvent);
-                }
+
+            List<String> uidMessages = dataBase.getAllOtherUserMessagesMarkedAsDELIVERED(otherPhoneNumber);
+            //tell the other user that you are Read his message and update the message state on fire store
+            // for your copy of chat and other user.
+            for (String messageUid : uidMessages) {
+                fireStore.collection("messages").document(otherPhoneNumber)
+                        .collection(UserSettings.PHONENUMBER).document(messageUid).update("messageState", DataBase.READ);
+                fireStore.collection("messages").document(UserSettings.PHONENUMBER)
+                        .collection(otherPhoneNumber).document(messageUid).update("messageState", DataBase.READ);
+                workEvent = new WorkEvent(UserSettings.PHONENUMBER, DataBase.MessageState.READ, false, false, new MessageModel(null, messageUid, null, null, null, null, null, null));
+                fireStore.collection("profile")
+                        .document(otherPhoneNumber).collection("event").add(workEvent);
             }
+
             return null;
         }
     }

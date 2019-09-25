@@ -3,36 +3,40 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="70dp"
-    android:layout_marginTop="8dp"
+    android:layout_height="80dp"
     android:background="@color/white">
 
-    <View
-        android:id="@+id/divider2"
-        android:layout_width="0dp"
-        android:layout_height="1dp"
-        android:background="#A8A1A1"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toEndOf="@+id/list_chat_profile_image" />
-
-    <de.hdodenhof.circleimageview.CircleImageView
-        android:id="@+id/list_chat_profile_image"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
+    <ImageView
+        android:id="@+id/list_chat_message_state"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
         android:layout_marginStart="8dp"
-        android:src="@drawable/ic_default_avatar_profile"
+        android:layout_marginBottom="8dp"
+        android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/list_chat_profile_image"
+        app:layout_constraintTop_toBottomOf="@+id/list_chat_contact_name"
+        app:layout_constraintVertical_bias="0.421"
+        app:srcCompat="@drawable/ic_read" />
+
+    <ImageView
+        android:id="@+id/list_chat_mute"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginEnd="8dp"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/list_chat_message_count"
+        app:layout_constraintTop_toBottomOf="@+id/list_chat_date"
+        app:layout_constraintVertical_bias="0.315"
+        app:srcCompat="@drawable/ic_volume_off" />
 
     <TextView
         android:id="@+id/list_chat_contact_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
         android:ellipsize="end"
         android:text="Nidal Bakir"
         android:textColor="#000000"
@@ -41,45 +45,20 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/list_chat_message"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:layout_marginTop="10dp"
-        android:ellipsize="end"
-        android:lines="1"
-        android:text="okey i'll be there "
-        app:layout_constraintEnd_toStartOf="@+id/list_chat_volume_off"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toEndOf="@+id/list_chat_message_state"
-        app:layout_constraintTop_toBottomOf="@+id/list_chat_contact_name" />
-
-    <ImageView
-        android:id="@+id/list_chat_message_state"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/list_chat_profile_image"
-        app:layout_constraintTop_toBottomOf="@+id/list_chat_contact_name"
-        app:layout_constraintVertical_bias="0.421"
-        app:srcCompat="@drawable/ic_read" />
-
-    <TextView
         android:id="@+id/list_chat_date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
         android:text="9/27/19"
+        android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/list_chat_message_count"
-        android:layout_width="25dp"
-        android:layout_height="25dp"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
@@ -92,15 +71,37 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/list_chat_date" />
 
-    <ImageView
-        android:id="@+id/list_chat_mute"
-        android:layout_width="wrap_content"
+    <com.vanniktech.emoji.EmojiTextView
+        android:id="@+id/list_chat_message"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:visibility="visible"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="6dp"
+        android:ellipsize="end"
+        android:lines="1"
+        android:maxLength="30"
+        android:text="okey i'll be there"
+        app:layout_constraintStart_toEndOf="@+id/list_chat_message_state"
+        app:layout_constraintTop_toBottomOf="@+id/list_chat_contact_name" />
+
+    <View
+        android:id="@+id/divider2"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:layout_marginStart="8dp"
+        android:background="#CEC7C7"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/list_chat_message_count"
-        app:layout_constraintTop_toBottomOf="@+id/list_chat_date"
-        app:layout_constraintVertical_bias="0.315"
-        app:srcCompat="@drawable/ic_volume_off" />
+        app:layout_constraintEnd_toEndOf="@+id/list_chat_date"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/list_chat_profile_image" />
+
+    <de.hdodenhof.circleimageview.CircleImageView
+        android:id="@+id/list_chat_profile_image"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginStart="8dp"
+        android:src="@drawable/ic_default_avatar_profile"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -64,11 +64,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/bg"
-        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
+        android:paddingBottom="60dp"
+        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
+        tools:listitem="@layout/item_out_chat_video" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
     android:layout_width="match_parent"
-
     android:layout_height="wrap_content"
     app:layout_anchorGravity="bottom|center"
     app:layout_anchor="@+id/chat_recycler_view">

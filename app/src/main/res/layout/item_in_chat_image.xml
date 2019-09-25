@@ -5,42 +5,57 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="2dp"
-    android:paddingEnd="8dp"
-   android:gravity="end"
+    android:paddingStart="8dp"
     android:orientation="vertical">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/out_chat_video_parent"
-        android:background="@drawable/shape_outgoing_bubble"
-        android:paddingStart="8dp"
-        android:paddingEnd="24dp"
+        android:id="@+id/in_chat_image_parent"
+        android:background="@drawable/shape_incoming_bubble"
+        android:paddingStart="24dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="8dp"
         android:paddingBottom="8dp">
 
-        <VideoView
-            android:id="@+id/out_chat_video"
-            android:layout_width="280dp"
-            android:layout_height="200dp"
-            android:layout_marginStart="4dp"
-            android:layout_marginTop="8dp"
+        <ImageView
+            android:id="@+id/in_chat_image_image_message"
+            android:layout_width="250dp"
+            android:layout_height="280dp"
+            android:scaleType="centerCrop"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintDimensionRatio="h,1:0.5"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintVertical_bias="0.0"
-            />
+            tools:srcCompat="@tools:sample/avatars" />
+
+        <ImageButton
+            android:id="@+id/in_chat_image_event"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="1dp"
+            android:scaleType="centerCrop"
+            app:layout_constraintBottom_toBottomOf="@+id/in_chat_image_image_message"
+            app:layout_constraintEnd_toEndOf="@+id/in_chat_image_image_message"
+            app:layout_constraintStart_toStartOf="@+id/in_chat_image_image_message"
+            app:layout_constraintTop_toTopOf="@+id/in_chat_image_image_message"
+            app:srcCompat="@drawable/ic_download" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintBottom_toBottomOf="@+id/out_chat_video"
-            app:layout_constraintEnd_toEndOf="@+id/out_chat_video">
+            android:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="@+id/in_chat_image_image_message"
+            app:layout_constraintEnd_toEndOf="@+id/in_chat_image_image_message">
+
 
             <TextView
-                android:id="@+id/out_chat_video_time"
+                android:id="@+id/in_chat_image_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
@@ -49,30 +64,10 @@
                 android:text="2:45 PM"
                 android:textColor="@color/white" />
 
-            <ImageView
-                android:id="@+id/out_chat_video_message_state"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="4dp"
-                android:layout_weight="1"
-                app:srcCompat="@drawable/ic_read" />
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/out_chat_video_event"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="1dp"
-            android:scaleType="centerCrop"
-            app:layout_constraintBottom_toBottomOf="@+id/out_chat_video"
-            app:layout_constraintEnd_toEndOf="@+id/out_chat_video"
-            app:layout_constraintStart_toStartOf="@+id/out_chat_video"
-            app:layout_constraintTop_toTopOf="@+id/out_chat_video"
-            app:srcCompat="@drawable/ic_cancel" />
-
         <fr.castorflex.android.circularprogressbar.CircularProgressBar
-            android:id="@+id/out_chat_video_progressBar"
+            android:id="@+id/in_chat_image_progressBar"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:indeterminate="true"
@@ -82,7 +77,8 @@
             app:cpb_rotation_speed="0.6"
             app:cpb_stroke_width="4dp"
             app:cpb_sweep_speed="0.6"
-            app:layout_constraintBottom_toBottomOf="@+id/out_chat_video_event"
-            app:layout_constraintEnd_toEndOf="@+id/out_chat_video_event" />
+            app:layout_constraintBottom_toBottomOf="@+id/in_chat_image_event"
+            app:layout_constraintEnd_toEndOf="@+id/in_chat_image_event" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </LinearLayout>

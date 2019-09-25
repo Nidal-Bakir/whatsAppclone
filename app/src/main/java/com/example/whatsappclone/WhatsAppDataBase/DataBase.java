@@ -13,10 +13,19 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.example.whatsappclone.ActivityClass.BaseChatActivity2;
+import com.example.whatsappclone.ActivityClass.chatActivity;
 import com.example.whatsappclone.AssistanceClass.InternetCheck;
+import com.example.whatsappclone.NotificationsPackage.NotificationMessage;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
 import com.example.whatsappclone.WhatsApp_Models.GeneralContact;
 import com.example.whatsappclone.WhatsApp_Models.MessageModel;
+import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.FileMessage;
+import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.ImageMessage;
+import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.Message;
+import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.TextMessage;
+import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.VideoMessage;
+import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.VoiceMessage;
 import com.example.whatsappclone.WhatsApp_Models.ProfileImage;
 import com.example.whatsappclone.WhatsApp_Models.Status;
 import com.example.whatsappclone.WhatsApp_Models.StatusPrivacyModel;
@@ -32,15 +41,16 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 
 public class DataBase extends SQLiteOpenHelper {
     private static final String TAG = "DataBase";
 
-    public enum MessageState {READ, DELIVERED, WAIT_NETWORK, NUN}
+    public enum MessageState {READ, DELIVERED, WAIT_NETWORK, ON_SERVER, MESSAGE_DELETED, NUN}
 
     public static final int MUTE = 1;
     public static final int NOT_MUTE = 0;
-    private static final int MESSAGE_DELETED = -1;
+    public static final int MESSAGE_DELETED = -1;
     public static final int WAIT_NETWORK = 0;
     public static final int ON_SERVER = 1;
     public static final int DELIVERED = 2;
@@ -236,6 +246,21 @@ public class DataBase extends SQLiteOpenHelper {
                     + ConversationTable.DATE + " INTEGER "
                     + ")";
 
+    // this table hold the messages that user do not read  to show
+    private class NotificationTable implements BaseColumns {
+        private static final String TABLE_NAME = "notification";
+        private static final String PHONE_NUMBER = "phone_number";
+        private static final String MESSAGE = "message";
+        private static final String DATE = "date";
+    }
+
+    private static final String SQL_CREATE_NOTIFICATION_TABLE =
+            " CREATE TABLE " + NotificationTable.TABLE_NAME
+                    + " ("
+                    + NotificationTable.PHONE_NUMBER + " TEXT,"
+                    + NotificationTable.MESSAGE + " TEXT,"
+                    + NotificationTable.DATE + " INTEGER "
+                    + ")";
 
     public DataBase(@Nullable Context context) {
         super(context, DB_NAME, null, 1);
@@ -250,6 +275,7 @@ public class DataBase extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_STATUS_VISIT_TABLE);
         db.execSQL(SQL_CREATE_MESSAGE_HOLDER_TABLE);
         db.execSQL(SQL_CREATE_CONVERSATION_TABLE);
+        db.execSQL(SQL_CREATE_NOTIFICATION_TABLE);
         //add user info to database the def info
         setDefaultUserInfo(new Contact(UserSettings.UID, UserSettings.PHONENUMBER, "Me", "online"), db);
         ProfileImage profileImage = new ProfileImage(null, null);
@@ -786,12 +812,24 @@ public class DataBase extends SQLiteOpenHelper {
         database.delete(StatusVisit.TABLE_NAME, null, null);
     }
 
-
-    public void addMessageInChatTable(String userPhoneNumber, MessageModel messageModel) {
-        // userPhoneNumber it is the same table name
+    private boolean checkIfTheMessageExists(String messageUid, String userPhoneNumber) {
         database = this.getReadableDatabase();
+        Cursor cursor = database.query(userPhoneNumber.replace("+", "T")
+                , null
+                , ChatTable.MESSAGE_UID + " =? "
+                , new String[]{messageUid}
+                , null
+                , null
+                , null);
+        return cursor.getCount() != EMPTYCURSOR;
+    }
+
+    public void addMessageInChatTable(String userPhoneNumber, MessageModel messageModel, boolean fromService) {
+
+        // userPhoneNumber it is the same table name
+        database = this.getWritableDatabase();
         database.execSQL("CREATE TABLE IF NOT EXISTS "
-                + userPhoneNumber + " ( "
+                + userPhoneNumber.replace("+", "T") + " ( "
                 + ChatTable.ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + ChatTable.PHONE_NUMBER + " TEXT,"
                 + ChatTable.MESSAGE_UID + " TEXT, "
@@ -817,11 +855,13 @@ public class DataBase extends SQLiteOpenHelper {
         contentValues.put(ChatTable.VIDEO_URL, messageModel.getVideoUrl());
         contentValues.put(ChatTable.FILE_URL, messageModel.getFileUrl());
         if (messageModel.getPhoneNumber().equals(UserSettings.PHONENUMBER)) {
-            if (InternetCheck.isOnline()) {
-                if (!messageModel.getTextMessage().equals(null))
+            if (BaseChatActivity2.isConnected) {
+                if (messageModel.getTextMessage() != null)
                     contentValues.put(ChatTable.MESSAGE_STATE, ON_SERVER);
                 else contentValues.put(ChatTable.MESSAGE_STATE, WAIT_NETWORK);
+                messageModel.setMessageState(ON_SERVER);
             } else {
+                messageModel.setMessageState(WAIT_NETWORK);
                 contentValues.put(ChatTable.MESSAGE_STATE, WAIT_NETWORK);
                 addMessageToMessageHolder(messageModel.getMessageUid(), userPhoneNumber);
             }
@@ -832,33 +872,38 @@ public class DataBase extends SQLiteOpenHelper {
             contentValues.put(ChatTable.MESSAGE_STATE, DELIVERED);
         }
         contentValues.put(ChatTable.DATE, Long.parseLong(messageModel.getDate()));
-        database.insert(userPhoneNumber, null, contentValues);
-        // send message that you are delivered the message
-        WorkEvent workEvent;
-        if (messageModel.getPhoneNumber().equals(UserSettings.PHONENUMBER)) {
-            messageModel.setMessageState(ON_SERVER);
-            // set the event to new message
-            workEvent = new WorkEvent(UserSettings.PHONENUMBER, MessageState.NUN, true, false, messageModel);
-            /*
-             * add the message to user collection and other user collection
-             * Because each user has their own copy of conversations
-             * */
-            firestore.collection("messages").document(UserSettings.PHONENUMBER)
-                    .collection(userPhoneNumber).document(messageModel.getMessageUid()).set(messageModel);
-            firestore.collection("messages").document(userPhoneNumber)
-                    .collection(UserSettings.PHONENUMBER).document(messageModel.getMessageUid()).set(messageModel);
-        } else {
-            //tell the other user that you are received his message
-            firestore.collection("messages").document(userPhoneNumber)
-                    .collection(UserSettings.PHONENUMBER).document(messageModel.getMessageUid()).update("messageState", DELIVERED);
-            workEvent = new WorkEvent(UserSettings.PHONENUMBER, MessageState.DELIVERED, false, false, null);
+        if (!checkIfTheMessageExists(messageModel.getMessageUid(), userPhoneNumber)) {
+            database.insert(userPhoneNumber.replace("+", "T"), null, contentValues);
+            // send message that you are delivered the message
+            WorkEvent workEvent;
+            if (messageModel.getPhoneNumber().equals(UserSettings.PHONENUMBER)) {
+               // messageModel.setMessageState(ON_SERVER);
+
+                // set the event to new message
+                workEvent = new WorkEvent(UserSettings.PHONENUMBER, MessageState.NUN, true, false, messageModel);
+                /*
+                 * add the message to user collection and other user collection
+                 * Because each user has their own copy of conversations
+                 * */
+                firestore.collection("messages").document(UserSettings.PHONENUMBER)
+                        .collection(userPhoneNumber).document(messageModel.getMessageUid()).set(messageModel);
+                firestore.collection("messages").document(userPhoneNumber)
+                        .collection(UserSettings.PHONENUMBER).document(messageModel.getMessageUid()).set(messageModel);
+
+            } else {
+                //tell the other user that you are received his message
+                firestore.collection("messages").document(userPhoneNumber)
+                        .collection(UserSettings.PHONENUMBER).document(messageModel.getMessageUid()).update("messageState", DELIVERED);
+                workEvent = new WorkEvent(UserSettings.PHONENUMBER, MessageState.DELIVERED, false, false, messageModel);
+            }
+            firestore.collection("profile")
+                    .document(userPhoneNumber).collection("event").add(workEvent);
+            // add or update conversation
+            Conversation conversation = addConversation(new Conversation(userPhoneNumber, NOT_MUTE, 0, 0), messageModel.getPhoneNumber());
+            // update chat recycler view items
+            if (!fromService)
+                chatTableListener.onAddNewMessage(workEvent.getMessageModel(), conversation);
         }
-        firestore.collection("profile")
-                .document(messageModel.getPhoneNumber()).collection("event").add(workEvent);
-        // add or update conversation
-        Conversation conversation = addConversation(new Conversation(userPhoneNumber, NOT_MUTE, 0, 0), messageModel.getPhoneNumber());
-        // update chat recycler view items
-        chatTableListener.onAddNewMessage(workEvent.getMessageModel(), conversation);
     }
 
     public void chatTableListener(ChatTableListener chatTableListener) {
@@ -868,7 +913,7 @@ public class DataBase extends SQLiteOpenHelper {
     public interface ChatTableListener {
         void onAddNewMessage(MessageModel messageModel, Conversation conversation);
 
-        void onChangeMessageState(String otherUserPhoneNumber);
+        void onChangeMessageState(String otherUserPhoneNumber, String messageUid, MessageState messageState);
 
         void onDeleteMessage(String otherUserPhoneNumber, MessageModel messageModel);
     }
@@ -876,26 +921,32 @@ public class DataBase extends SQLiteOpenHelper {
     public List<String> getAllOtherUserMessagesMarkedAsDELIVERED(String phoneNumber) {
         database = this.getReadableDatabase();
         List<String> UidMessagesList = new ArrayList<>();
-        Cursor cursor = database.query(
-                phoneNumber
-                , new String[]{ChatTable.MESSAGE_UID}
-                , ChatTable.PHONE_NUMBER + " =? " + ChatTable.MESSAGE_STATE + " =? "
-                , new String[]{phoneNumber, String.valueOf(DELIVERED)}
-                , null
-                , null
-                , null);
-        while (cursor.moveToNext()) {
-            UidMessagesList.add(cursor.getString(cursor.getColumnIndex(ChatTable.MESSAGE_UID)));
+        //  will throw an RuntimeException if the table is not created yet
+        try {
+            Cursor cursor = database.query(
+                    phoneNumber.replace("+", "T")
+                    , new String[]{ChatTable.MESSAGE_UID}
+                    , ChatTable.PHONE_NUMBER + " = ? " + " AND " + ChatTable.MESSAGE_STATE + " = ? "
+                    , new String[]{phoneNumber, String.valueOf(DELIVERED)}
+                    , null
+                    , null
+                    , null);
+            while (cursor.moveToNext()) {
+                UidMessagesList.add(cursor.getString(cursor.getColumnIndex(ChatTable.MESSAGE_UID)));
+            }
+            cursor.close();
+            database = this.getWritableDatabase();
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(ChatTable.MESSAGE_STATE, READ);
+            database.update(phoneNumber.replace("+", "T")
+                    , contentValues
+                    , ChatTable.PHONE_NUMBER + " =? "
+                    , new String[]{phoneNumber});
+            return UidMessagesList;
+        } catch (RuntimeException e) {
+            Log.d(TAG, "getAllOtherUserMessagesMarkedAsDELIVERED: ", e);
+            return UidMessagesList;
         }
-        cursor.close();
-        database = this.getWritableDatabase();
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(ChatTable.MESSAGE_STATE, READ);
-        database.update(phoneNumber
-                , contentValues
-                , ChatTable.PHONE_NUMBER + " =? "
-                , new String[]{phoneNumber});
-        return UidMessagesList;
     }
 
     public Bundle getLastMessage(String phoneNumber) {
@@ -903,7 +954,7 @@ public class DataBase extends SQLiteOpenHelper {
         database = this.getReadableDatabase();
         // phoneNumber <=> tableName
         Cursor cursor = database.
-                rawQuery("SELECT * from " + phoneNumber + " ORDER BY " + ChatTable.DATE + " DESC LIMIT 1 "
+                rawQuery("SELECT * from " + phoneNumber.replace("+", "T") + " ORDER BY " + ChatTable.DATE + " DESC LIMIT 1 "
                         , null);
         if (cursor.getCount() == EMPTYCURSOR) {
             cursor.close();
@@ -945,36 +996,28 @@ public class DataBase extends SQLiteOpenHelper {
 
     }
 
-    public void updateMessageState(String phoneNumber, MessageState messageState) {
+    public void updateMessageState(String phoneNumber, MessageState messageState, String messageUid, boolean fromService) {
         database = this.getReadableDatabase();
-        //if the last message is the other user message then return
-        Cursor cursor = database.
-                rawQuery("SELECT * from " + phoneNumber + " ORDER BY " + ChatTable.DATE + " DESC LIMIT 1 "
-                        , null);
-        cursor.moveToFirst();
-        if (cursor.getString(cursor.getColumnIndex(ChatTable.PHONE_NUMBER)).equals(phoneNumber)) {
-            cursor.close();
-            return;
-        } else {
-            if (messageState.equals(MessageState.DELIVERED)) {
-                ContentValues contentValues = new ContentValues();
-                contentValues.put(ChatTable.MESSAGE_STATE, DELIVERED);
-                database.update(phoneNumber
-                        , contentValues
-                        , ChatTable.PHONE_NUMBER + " =? " + " AND " + ChatTable.MESSAGE_STATE + " =? "
-                        , new String[]{UserSettings.PHONENUMBER, String.valueOf(ON_SERVER)});
-            } else if (messageState.equals(MessageState.READ)) {
-                ContentValues contentValues = new ContentValues();
-                contentValues.put(ChatTable.MESSAGE_STATE, READ);
-                database.update(phoneNumber
-                        , contentValues
-                        , ChatTable.PHONE_NUMBER + " =? " + " AND " + ChatTable.MESSAGE_STATE + " =? "
-                        , new String[]{UserSettings.PHONENUMBER, String.valueOf(DELIVERED)});
-            }
-            chatTableListener.onChangeMessageState(phoneNumber);
 
+        if (messageState.equals(MessageState.DELIVERED)) {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(ChatTable.MESSAGE_STATE, DELIVERED);
+            database.update(phoneNumber.replace("+", "T")
+                    , contentValues
+                    , ChatTable.MESSAGE_UID + " =? "
+                    , new String[]{messageUid});
+        } else if (messageState.equals(MessageState.READ)) {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(ChatTable.MESSAGE_STATE, READ);
+            database.update(phoneNumber.replace("+", "T")
+                    , contentValues
+                    , ChatTable.MESSAGE_UID + " =? "
+                    , new String[]{messageUid});
         }
-        cursor.close();
+        if (!fromService)
+            chatTableListener.onChangeMessageState(phoneNumber, messageUid, messageState);
+
+
     }
 
     /**
@@ -982,12 +1025,12 @@ public class DataBase extends SQLiteOpenHelper {
      * @param messageModel    The message is expected to be deleted,
      *                        and contains the number of the user who wants to delete the message
      */
-    public void deleteMessage(String userPhoneNumber, MessageModel messageModel) {
+    public void deleteMessage(String userPhoneNumber, MessageModel messageModel, boolean fromService) {
         database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(ChatTable.MESSAGE, "This message was deleted.");
         contentValues.put(ChatTable.MESSAGE_STATE, MESSAGE_DELETED);
-        database.update(userPhoneNumber
+        database.update(userPhoneNumber.replace("+", "T")
                 , contentValues
                 , ChatTable.MESSAGE_UID + " =? "
                 , new String[]{messageModel.getMessageUid()});
@@ -1006,7 +1049,8 @@ public class DataBase extends SQLiteOpenHelper {
 
         }
         // update chat recycler view items using diffUtil
-        chatTableListener.onDeleteMessage(userPhoneNumber, messageModel);
+        if (!fromService)
+            chatTableListener.onDeleteMessage(userPhoneNumber, messageModel);
     }
 
     private void addMessageToMessageHolder(String messageUid, String tableName) {
@@ -1036,10 +1080,10 @@ public class DataBase extends SQLiteOpenHelper {
                 String messageUdi = cursor.getString(cursor.getColumnIndex(MessagesHolderTable.MESSAGE_UID));
                 String phoneNumber = cursor.getString(cursor.getColumnIndex(MessagesHolderTable.PHONE_NUMBER));
                 contentValues.put(ChatTable.MESSAGE_STATE, ON_SERVER);
-                database.update(phoneNumber, contentValues
+                database.update(phoneNumber.replace("+", "T"), contentValues
                         , ChatTable.MESSAGE_UID + " =?" + " AND " + ChatTable.MESSAGE_STATE + " =?"
                         , new String[]{messageUdi, String.valueOf(WAIT_NETWORK)});
-                updateMessageState(phoneNumber, MessageState.WAIT_NETWORK);
+                updateMessageState(phoneNumber, MessageState.ON_SERVER, messageUdi, false);
             }
             cursor.close();
 
@@ -1052,20 +1096,24 @@ public class DataBase extends SQLiteOpenHelper {
 
     // Conversation class for hold
     public static class Conversation {
-        private String phoneNamber;
+        private String phoneNumber;
         private int mute;
         private int messageCount;
         private long date;
 
         public Conversation(String phoneNumber, int mute, int messageCount, long date) {
-            this.phoneNamber = phoneNumber;
+            this.phoneNumber = phoneNumber;
             this.mute = mute;
             this.messageCount = messageCount;
             this.date = date;
         }
 
+        public void setMessageCount(int messageCount) {
+            this.messageCount = messageCount;
+        }
+
         public String getPhoneNumber() {
-            return phoneNamber;
+            return phoneNumber;
         }
 
         public int getMute() {
@@ -1089,15 +1137,15 @@ public class DataBase extends SQLiteOpenHelper {
                 ConversationTable.TABLE_NAME
                 , null
                 , ConversationTable.PHONE_NUMBER + " =?"
-                , new String[]{conversation.phoneNamber}
+                , new String[]{conversation.phoneNumber}
                 , null
                 , null
                 , null);
-        database = this.getWritableDatabase();
+
         // add one to the message count if is exist
         if (cursor.getCount() != EMPTYCURSOR) {
             cursor.moveToFirst();
-
+            database = this.getWritableDatabase();
             if (!messageOwner.equals(UserSettings.PHONENUMBER)) {
                 int messageCount = cursor.getInt(cursor.getColumnIndex(ConversationTable.MESSAGES_COUNT));
                 ++messageCount;
@@ -1127,14 +1175,17 @@ public class DataBase extends SQLiteOpenHelper {
 
         }
         database = this.getReadableDatabase();
+        Conversation conversation1 = null;
         cursor = database.
                 rawQuery("SELECT * from " + ConversationTable.TABLE_NAME + " ORDER BY " + ConversationTable.DATE + " DESC LIMIT 1 "
                         , null);
-        String phoneNumber = cursor.getString(cursor.getColumnIndex(ConversationTable.PHONE_NUMBER));
-        int messageCount = cursor.getInt(cursor.getColumnIndex(ConversationTable.MESSAGES_COUNT));
-        int mute = cursor.getInt(cursor.getColumnIndex(ConversationTable.MUTE));
-        long date = cursor.getLong(cursor.getColumnIndex(ConversationTable.DATE));
-        Conversation conversation1 = new Conversation(phoneNumber, mute, messageCount, date);
+        if (cursor.moveToFirst()) {
+            String phoneNumber = cursor.getString(cursor.getColumnIndex(ConversationTable.PHONE_NUMBER));
+            int messageCount = cursor.getInt(cursor.getColumnIndex(ConversationTable.MESSAGES_COUNT));
+            int mute = cursor.getInt(cursor.getColumnIndex(ConversationTable.MUTE));
+            long date = cursor.getLong(cursor.getColumnIndex(ConversationTable.DATE));
+            conversation1 = new Conversation(phoneNumber, mute, messageCount, date);
+        }
         cursor.close();
         return conversation1;
 
@@ -1203,5 +1254,131 @@ public class DataBase extends SQLiteOpenHelper {
         }
         cursor.close();
         return numberList;
+    }
+
+    public List<Message> getChatMessages(String phoneNumber, int LIMIT) {
+        List<Message> messageList = new ArrayList<>();
+        Stack<Message> messageStack = new Stack<>();
+
+        try { //  will throw an RuntimeException if the table is not created yet
+            Cursor cursor = database.query(
+                    phoneNumber.replace("+", "T")
+                    , null
+                    , null
+                    , null
+                    , null
+                    , null
+                    , ChatTable.DATE + " DESC "
+                    , String.valueOf(LIMIT));
+            while (cursor.moveToNext()) {
+                int id = cursor.getInt(cursor.getColumnIndex(ChatTable.ID));
+                String messageUid = cursor.getString(cursor.getColumnIndex(ChatTable.MESSAGE_UID));
+                String messageOwner = cursor.getString(cursor.getColumnIndex(ChatTable.PHONE_NUMBER));
+                int messageState = cursor.getInt(cursor.getColumnIndex(ChatTable.MESSAGE_STATE));
+                long time = cursor.getLong(cursor.getColumnIndex(ChatTable.DATE));
+
+                String message = cursor.getString(cursor.getColumnIndex(ChatTable.MESSAGE));
+                String voiceUrl = cursor.getString(cursor.getColumnIndex(ChatTable.VOICE_URL));
+                String voicePath = cursor.getString(cursor.getColumnIndex(ChatTable.VOICE_PATH));
+                String imageUrl = cursor.getString(cursor.getColumnIndex(ChatTable.IMAGE_URL));
+                String imagePath = cursor.getString(cursor.getColumnIndex(ChatTable.IMAGE_PATH));
+                String videoUrl = cursor.getString(cursor.getColumnIndex(ChatTable.VIDEO_URL));
+                String videoPath = cursor.getString(cursor.getColumnIndex(ChatTable.VIDEO_PATH));
+                String fileUrl = cursor.getString(cursor.getColumnIndex(ChatTable.FILE_URL));
+                String filePath = cursor.getString(cursor.getColumnIndex(ChatTable.FILE_PATH));
+                if (!message.equals("")) {
+                    TextMessage textMessage = new TextMessage(id, messageOwner, messageUid, messageState, time, message);
+                    messageStack.push(textMessage);
+                } else if (!imagePath.equals("") || !imageUrl.equals("")) {
+                    ImageMessage imageMessage = new ImageMessage(id, messageOwner, messageUid, messageState, time, imageUrl, imagePath);
+                    messageStack.push(imageMessage);
+                } else if (!voicePath.equals("") || !voiceUrl.equals("")) {
+                    VoiceMessage voiceMessage = new VoiceMessage(id, messageOwner, messageUid, messageState, time, voiceUrl, voicePath);
+                    messageStack.push(voiceMessage);
+                } else if (!videoPath.equals("") || !videoUrl.equals("")) {
+                    VideoMessage videoMessage = new VideoMessage(id, messageOwner, messageUid, messageState, time, videoUrl, videoPath);
+                    messageStack.push(videoMessage);
+                } else if (!filePath.equals("") || !fileUrl.equals("")) {
+                    FileMessage fileMessage = new FileMessage(id, messageOwner, messageUid, messageState, time, fileUrl, filePath);
+                    messageStack.push(fileMessage);
+                }
+            }
+            cursor.close();
+            for (int i = messageStack.size() - 1; i >= 0; i--)
+                messageList.add(messageStack.get(i));
+            return messageList;
+        } catch (RuntimeException e) {
+            Log.d(TAG, "getChatMessages: ", e);
+            return messageList;
+        }
+    }
+
+    public Stack<NotificationMessage> getAllNewMessages() {
+        database = this.getReadableDatabase();
+        NotificationMessage message;
+        Stack<NotificationMessage> notificationMessageStack = new Stack<>();
+        Cursor cursor = database.query(
+                NotificationTable.TABLE_NAME
+                , null
+                , null
+                , null
+                , null
+                , null
+                , NotificationTable.DATE + " DESC "
+                , " 8 ");
+        while (cursor.moveToNext()) {
+            String phoneNumber = cursor.getString(cursor.getColumnIndex(NotificationTable.PHONE_NUMBER));
+            Contact contact = this.getContact(null, phoneNumber);
+            String contactName = contact == null ? phoneNumber : contact.getContact_name();
+            message = new NotificationMessage(
+                    cursor.getString(cursor.getColumnIndex(NotificationTable.MESSAGE))
+                    , contactName
+                    , cursor.getLong(cursor.getColumnIndex(NotificationTable.DATE)));
+            notificationMessageStack.push(message);
+        }
+        return notificationMessageStack;
+    }
+
+    public boolean pushNotificationInDataBase(MessageModel messageModel) {
+        database = this.getReadableDatabase();
+        Cursor cursor = database.query(
+                NotificationTable.TABLE_NAME
+                , null
+                , NotificationTable.DATE + " =? "
+                , new String[]{messageModel.getDate()}
+                , null
+                , null
+                , null);
+
+        if (cursor.getCount() != EMPTYCURSOR) {
+            cursor.close();
+            return false;
+        }
+        database = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(NotificationTable.DATE, Long.parseLong(messageModel.getDate()));
+        contentValues.put(NotificationTable.PHONE_NUMBER, messageModel.getPhoneNumber());
+        String textMessage = "";
+        if (messageModel.getTextMessage() != null)
+            textMessage = messageModel.getTextMessage();
+        else if (messageModel.getImageUrl() != null)
+            textMessage = "Image!";
+        else if (messageModel.getVoiceUrl() != null)
+            textMessage = "Voice message";
+        else if (messageModel.getVideoUrl() != null)
+            textMessage = "Video!";
+        else if (messageModel.getFileUrl() != null)
+            textMessage = "File!";
+        contentValues.put(NotificationTable.MESSAGE, textMessage);
+        database.insert(NotificationTable.TABLE_NAME, null, contentValues);
+        return true;
+    }
+
+    public void deleteNotificationForUser(String phoneNumber) {
+        database = this.getWritableDatabase();
+        database.delete(
+                NotificationTable.TABLE_NAME
+                , NotificationTable.PHONE_NUMBER + " =? "
+                , new String[]{phoneNumber});
     }
 }

@@ -2,20 +2,22 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/shape_outgoing_bubble"
-    android:layout_gravity="end"
-    android:layout_marginTop="8dp"
+    android:gravity="end"
+    android:paddingEnd="8dp"
+    android:layout_marginTop="2dp"
     android:orientation="vertical">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:id="@+id/out_chat_file_parent"
+        android:background="@drawable/shape_outgoing_bubble">
 
         <androidx.cardview.widget.CardView
-            android:id="@+id/out_chat_file_card"
             android:layout_width="300dp"
+            android:id="@+id/out_chat_file_card"
             android:layout_height="60dp"
             android:layout_marginStart="16dp"
             android:layout_marginTop="4dp"
@@ -100,7 +102,7 @@
             app:layout_constraintTop_toBottomOf="@+id/out_chat_file_card">
 
             <TextView
-                android:id="@+id/out_chat_voice_time"
+                android:id="@+id/out_chat_file_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
@@ -109,7 +111,7 @@
                 android:text="2:45 PM" />
 
             <ImageView
-                android:id="@+id/out_chat_voice_message_state"
+                android:id="@+id/out_chat_file_message_state"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"

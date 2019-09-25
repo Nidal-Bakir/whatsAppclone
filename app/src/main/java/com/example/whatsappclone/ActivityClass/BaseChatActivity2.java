@@ -24,6 +24,7 @@ import com.example.whatsappclone.Adapters.StatusAdapter;
 import com.example.whatsappclone.AssistanceClass.InternetCheck;
 import com.example.whatsappclone.AssistanceClass.OnSwipeListener;
 import com.example.whatsappclone.AssistanceClass.BackgroundWorker;
+import com.example.whatsappclone.NotificationsPackage.NotificationClass;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.SyncContactsWithCloudDB;
@@ -37,6 +38,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import android.preference.PreferenceManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.util.TypedValue;
@@ -81,25 +83,35 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
+import com.vanniktech.emoji.EmojiManager;
+import com.vanniktech.emoji.google.GoogleEmojiProvider;
+import com.vanniktech.emoji.ios.IosEmojiProvider;
+import com.vanniktech.emoji.twitter.TwitterEmojiProvider;
 
 import io.fabric.sdk.android.Fabric;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, DroidListener {
+public class BaseChatActivity2 extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, DroidListener, DataBase.ChatTableListener {
     private static final String TAG = "BaseChatActivity2";
     private FirebaseAuth auth = FirebaseAuth.getInstance();
+    public static boolean STOP_WORKER = true;
     private static final int IMAGE_CHOOSER_REQUEST_CODE = 476;
     private static final int ADD_STATUS_REQUEST_CODE = 823;
     private static final int PERMISSIONS = 1234;
@@ -132,6 +144,10 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     private DroidNet droidNet;
     ConstraintLayout noConversation;
     private RecyclerView conversationRecyclerView;
+    private ConversationAdapter conversationAdapter;
+    private OneTimeWorkRequest uploadWork;
+    private NotificationClass notificationClass;
+    public static boolean isConnected = false;
 
 
     @Override
@@ -158,6 +174,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             }
         }
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable final Intent data) {
@@ -246,7 +263,6 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                                     public void onUploadCompleteListener(Status status) {
                                         statusAdapter.addStatusToList(status);
                                         dataBase.deleteAllVisits();
-                                        statusCollectionListener();
                                     }
                                 });
                             } else {
@@ -259,6 +275,8 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 }
                 break;
         }
+        statusCollectionListener();
+        eventListener();
     }
 
     private void showSnackBar() {
@@ -277,6 +295,22 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Fabric.with(this, new Crashlytics());
+        // emoji init and select the emoji package from settings
+        SharedPreferences emojiType = PreferenceManager.getDefaultSharedPreferences(this);
+        String type = emojiType.getString("emoji", "ios");
+        if (type != null)
+            switch (type) {
+                case "twitter":
+                    EmojiManager.install(new TwitterEmojiProvider());
+                    break;
+                case "google":
+                    EmojiManager.install(new GoogleEmojiProvider());
+                    break;
+                default://ios is the default emoji type
+                    EmojiManager.install(new IosEmojiProvider());
+                    break;
+            }
+        else EmojiManager.install(new IosEmojiProvider());
         setContentView(R.layout.activity_base_chat2);
         noConversation = findViewById(R.id.no_chat_image);
         // open the login activity
@@ -284,6 +318,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
             finish();
         } else {
+            WorkManager.getInstance(getBaseContext()).cancelAllWorkByTag("messagesListener");
             getSharedPreferences("firstTime", MODE_PRIVATE).edit().putBoolean("firstTime", false).apply();
             // ask for all Permissions
             if (checkAndRequestPermissions()) {
@@ -291,7 +326,9 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 // to handle the numbers whose  doesn't have area code i.g(+1)4
                 TelephonyManager tm = (TelephonyManager) getSystemService(TELEPHONY_SERVICE);
                 countryCode = tm.getSimCountryIso();
+                notificationClass = new NotificationClass(this);
                 startApp();
+                dataBase.chatTableListener(this);
 
 
             }
@@ -314,6 +351,14 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
         //sync the contacts
         contactsWithCloudDB = new SyncContactsWithCloudDB(getApplicationContext(), countryCode);
         contactsWithCloudDB.execute(false);
+        InternetCheck internetCheck = new InternetCheck(this);
+        internetCheck.execute();
+        internetCheck.onComplete(new InternetCheck.OnCheckComplete() {
+            @Override
+            public void onCheckComplete(boolean isOnline) {
+                BaseChatActivity2.isConnected = isOnline;
+            }
+        });
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         setTitle("WhatsApp");
@@ -387,52 +432,32 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 if (conversationList.isEmpty())
                     noConversation.setVisibility(View.VISIBLE);
                 else noConversation.setVisibility(View.GONE);
-                final ConversationAdapter conversationAdapter = new ConversationAdapter(getApplicationContext(), conversationList);
+                conversationAdapter = new ConversationAdapter(getApplicationContext(), conversationList);
                 conversationRecyclerView.setAdapter(conversationAdapter);
                 conversationAdapter.onConversationItemClickListener(new ConversationAdapter.OnConversationItemClickListener() {
                     @Override
-                    public void onClick(DataBase.Contact contact,String phoneNumber) {
-                        Intent intent=new Intent(BaseChatActivity2.this,chatActivity.class);
-                        if (contact!=null) {
+                    public void onClick(DataBase.Contact contact, String phoneNumber) {
+                        Intent intent = new Intent(BaseChatActivity2.this, chatActivity.class);
+                        // registration.remove();
+                        if (contact != null) {
                             intent.putExtra("phone_number", contact.getPhone_number());
                             intent.putExtra("uid", contact.getUID());
                             intent.putExtra("contact_name", contact.getContact_name());
-                        }else {
-                            intent.putExtra("phone_number",phoneNumber);
-                            intent.putExtra("uid","");
-                            intent.putExtra("contact_name",phoneNumber);
+                        } else {
+                            intent.putExtra("phone_number", phoneNumber);
+                            intent.putExtra("uid", "");
+                            intent.putExtra("contact_name", phoneNumber);
                         }
                         startActivity(intent);
                     }
                 });
-                //update chat recycler view items
-                dataBase.chatTableListener(new DataBase.ChatTableListener() {
-                    @Override
-                    public void onAddNewMessage(MessageModel messageModel, DataBase.Conversation conversation) {
-                        conversationAdapter.addConversation(conversation);
-                    }
 
-                    @Override
-                    public void onChangeMessageState(String otherUserPhoneNumber) {
-                        conversationAdapter.updateMessage(otherUserPhoneNumber);
-                    }
-
-                    @Override
-                    public void onDeleteMessage(String otherUserPhoneNumber, MessageModel messageModel) {
-                        conversationAdapter.updateMessage(otherUserPhoneNumber);
-                    }
-                });
-                //listening for network connection state and Internet connectivity
                 droidNet.addInternetConnectivityListener(BaseChatActivity2.this);
-                //start the background service
-                WorkManager.getInstance(getBaseContext()).cancelAllWorkByTag("messagesListener");
-                Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
-                        .CONNECTED).build();
-                OneTimeWorkRequest worker = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
-                        .setConstraints(constraints).addTag("messagesListener").build();
-                WorkManager.getInstance(getBaseContext()).enqueue(worker);
+
+
             }
         });
+
     }
 
     private boolean checkAndRequestPermissions() {
@@ -480,7 +505,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                     @Override
                     public void onFragmentIGestureDetector(CardView viewedList, OnSwipeListener.Direction direction) {
                         if (direction == OnSwipeListener.Direction.up)
-                            //show the list of contacts hows visited the user storu
+                            //show the list of contacts hows visited the user store
                             viewedList.animate().translationY(0).setDuration(250).start();
                         else {
                             // from DP to PX
@@ -500,7 +525,7 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
                 });
                 // send notification that the user has open the status
                 if (!status.getPhone_number().equals(UserSettings.PHONENUMBER)) {
-                    final String time = new SimpleDateFormat("h:mm a").format(new Date());
+                    final String time = new SimpleDateFormat("h:mm a", Locale.getDefault()).format(new Date());
                     /*get the other user story and compare the uploading time if it's the same
                      * then send message that you are visit his/her story
                      * */
@@ -524,7 +549,79 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
             }
 
         });
+
         statusCollectionListener();
+        eventListener();
+    }
+
+    ListenerRegistration registration = new ListenerRegistration() {
+        @Override
+        public void remove() {
+
+        }
+    };
+
+    void eventListener() {
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        final CollectionReference conversation = firestore.collection("profile")
+                .document(UserSettings.PHONENUMBER).collection("conversation");
+        /*ref to chat collection so when any one want to talk to me will send to with collection message
+         * with his number and the listener below will catch the number and get the messages from fireStore
+         * to data base
+         */
+        final CollectionReference eventRef = firestore.collection("profile")
+                .document(UserSettings.PHONENUMBER).collection("event");
+        registration = eventRef.addSnapshotListener(this, new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@javax.annotation.Nullable QuerySnapshot queryDocumentSnapshots, @javax.annotation.Nullable FirebaseFirestoreException e) {
+                if (e != null) {
+                    Log.e(TAG, "onEvent: ", e);
+                    return;
+                }
+                for (DocumentChange documentChange : Objects.requireNonNull(queryDocumentSnapshots).getDocumentChanges()) {
+                    switch (documentChange.getType()) {
+                        case ADDED:
+                            WorkEvent event = documentChange.getDocument().toObject(WorkEvent.class);
+                            //delete the document from collection
+                            eventRef.document(documentChange.getDocument().getId()).delete();
+                            Log.d(TAG, "ruing... :");
+                            // add the contact phone number to conversation (users who you have conversation with them )
+                            Map<String, String> map = new HashMap<>();
+                            map.put("phone_number", event.getPhoneNumber());
+                            conversation.document(event.getPhoneNumber()).set(map);
+                            //add,delete,update DataBase
+                            dealWithEvent(event);
+
+                            break;
+                    }
+                }
+            }
+        });
+    }
+
+
+    //add,delete,update DataBase
+    public void dealWithEvent(final WorkEvent event) {
+
+        List<String> mutedNumbers = dataBase.getAllMutedConversations();
+        String phoneNumber = event.getPhoneNumber();
+        if (event.getReadOrDelivered().equals(DataBase.MessageState.DELIVERED))
+            dataBase.updateMessageState(phoneNumber, DataBase.MessageState.DELIVERED, event.getMessageModel().getMessageUid(), false);
+        else if (event.getReadOrDelivered().equals(DataBase.MessageState.READ))
+            dataBase.updateMessageState(phoneNumber, DataBase.MessageState.READ, event.getMessageModel().getMessageUid(), false);
+        else if (event.isDeleteMessage())
+            dataBase.deleteMessage(phoneNumber, event.getMessageModel(), false);
+        else if (event.isNewMessage()) {
+            if (!mutedNumbers.contains(phoneNumber) && !event.getPhoneNumber().equals(UserSettings.PHONENUMBER)) {
+                // show notification
+                if (dataBase.pushNotificationInDataBase(event.getMessageModel())) {
+                    notificationClass.notifyUser();
+                }
+
+            }
+            dataBase.addMessageInChatTable(event.getPhoneNumber(), event.getMessageModel(), false);
+
+        }
     }
 
     public void statusCollectionListener() {
@@ -599,17 +696,22 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     public void onInternetConnectivityChanged(boolean isConnected) {
         if (isConnected)
             dataBase.updateAllHoledMessages();
+        BaseChatActivity2.isConnected = isConnected;
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         if (!getSharedPreferences("firstTime", MODE_PRIVATE).getBoolean("firstTime", true)) {
-//            Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
-//                    .CONNECTED).build();
-//            OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
-//                    .setConstraints(constraints).addTag("").build();
-//            WorkManager.getInstance(getBaseContext()).enqueue(uploadWork);
+            //start the background service
+            WorkManager.getInstance(getBaseContext()).cancelAllWorkByTag("messagesListener");
+            Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType
+                    .CONNECTED).build();
+            uploadWork = new OneTimeWorkRequest.Builder(BackgroundWorker.class)
+                    .setConstraints(constraints).addTag("messagesListener").build();
+            getSharedPreferences("work", MODE_PRIVATE).edit().putString("work", uploadWork.getId().toString()).apply();
+            WorkManager.getInstance(getBaseContext()).enqueue(uploadWork);
+            STOP_WORKER = false;
             contactsWithCloudDB.cancel(true);
             droidNet.removeInternetConnectivityChangeListener(this);
         }
@@ -625,17 +727,38 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     @Override
     protected void onStart() {
         super.onStart();
+        WorkManager.getInstance(getBaseContext()).cancelAllWorkByTag("messagesListener");
+        STOP_WORKER = true;
+        eventListener();
         if (auth.getCurrentUser() == null) {
             finish();
             startActivity(new Intent(BaseChatActivity2.this, MainActivity.class));
         }
-        dataBase = new DataBase(this);
+
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        registration.remove();
+
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        dataBase.close();
+        registration.remove();
+    }
+
+
+    @Override
+    protected void onResume() {
+        if (conversationAdapter != null) {
+            List<DataBase.Conversation> conversationList = dataBase.getAllConversation();
+            conversationAdapter.changeDataSet(conversationList);
+        }
+        super.onResume();
     }
 
     @Override
@@ -714,4 +837,22 @@ public class BaseChatActivity2 extends AppCompatActivity implements NavigationVi
     }
 
 
+    @Override
+    public void onAddNewMessage(MessageModel messageModel, DataBase.Conversation conversation) {
+        if (conversationAdapter != null)
+            conversationAdapter.addConversation(conversation);
+        noConversation.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onChangeMessageState(String otherUserPhoneNumber, String messageUid, DataBase.MessageState messageState) {
+        if (conversationAdapter != null)
+            conversationAdapter.updateMessage(otherUserPhoneNumber);
+    }
+
+    @Override
+    public void onDeleteMessage(String otherUserPhoneNumber, MessageModel messageModel) {
+        if (conversationAdapter != null)
+            conversationAdapter.updateMessage(otherUserPhoneNumber);
+    }
 }

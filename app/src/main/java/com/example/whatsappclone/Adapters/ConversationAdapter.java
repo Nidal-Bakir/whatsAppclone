@@ -11,6 +11,7 @@ import android.widget.TextView;
 import com.bumptech.glide.Glide;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
+import com.vanniktech.emoji.EmojiTextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -34,7 +35,12 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
         dataBase = new DataBase(context);
     }
 
-    public void updateMessage(String phoneNumber){
+    public void changeDataSet(List<DataBase.Conversation> conversationList) {
+        this.conversationList = conversationList;
+        notifyDataSetChanged();
+    }
+
+    public void updateMessage(String phoneNumber) {
         for (int i = 0; i < conversationList.size(); i++) {
             if (conversationList.get(i).getPhoneNumber().equals(phoneNumber)) {
                 notifyItemChanged(i);
@@ -45,6 +51,11 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
 
     public void addConversation(DataBase.Conversation conversation) {
 
+        if (!conversationList.isEmpty() && conversationList.get(0).getPhoneNumber().equals(conversation.getPhoneNumber())) {
+            conversationList.set(0, conversation);
+            notifyItemChanged(0);
+            return;
+        }
         for (int i = 0; i < conversationList.size(); i++) {
             if (conversationList.get(i).getPhoneNumber().equals(conversation.getPhoneNumber())) {
                 conversationList.remove(i);
@@ -108,9 +119,10 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
                 .error(R.drawable.ic_default_avatar_profile)
                 .into(holder.profileImage);
         //set the contact name
-        final DataBase.Contact contact=dataBase.getContact(null, phoneNumber);
-        if ( contact== null)
+        final DataBase.Contact contact = dataBase.getContact(null, phoneNumber);
+        if (contact == null)
             holder.contactName.setText(phoneNumber);
+        else holder.contactName.setText(contact.getContact_name());
         // set message count
         int messageCount = conversationList.get(holder.getAdapterPosition()).getMessageCount();
         if (messageCount == 0) {
@@ -132,18 +144,21 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
             @Override
             public void onClick(View v) {
                 // reset the message count
+                conversationList.get(holder.getAdapterPosition()).setMessageCount(0);
                 dataBase.reSetMessageCount(conversationList.get(holder.getAdapterPosition()).getPhoneNumber());
-                onConversationItemClickListener.onClick(contact,phoneNumber);
+                onConversationItemClickListener.onClick(contact, phoneNumber);
             }
         });
 
     }
-    public void onConversationItemClickListener(OnConversationItemClickListener onConversationItemClickListener){
-        this.onConversationItemClickListener=onConversationItemClickListener;
+
+    public void onConversationItemClickListener(OnConversationItemClickListener onConversationItemClickListener) {
+        this.onConversationItemClickListener = onConversationItemClickListener;
     }
-    public interface OnConversationItemClickListener{
+
+    public interface OnConversationItemClickListener {
         // we will use the phone number if the user do not know the new Contact (Anonymous number )
-        void onClick(DataBase.Contact contact,String PhoneNumber);
+        void onClick(DataBase.Contact contact, String PhoneNumber);
     }
 
     @Override
@@ -155,7 +170,7 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
         CircleImageView profileImage;
         TextView contactName;
         TextView date;
-        TextView message;
+        EmojiTextView message;
         ImageView messageState, mute;
         TextView messageCount;
 

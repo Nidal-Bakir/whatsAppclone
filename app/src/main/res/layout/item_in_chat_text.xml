@@ -4,18 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="32dp"
+    android:layout_marginEnd="32dp"
     android:layout_marginTop="2dp"
-    android:gravity="end"
-    android:paddingEnd="8dp">
+    android:paddingStart="8dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/out_chat_text_parent"
-        android:background="@drawable/shape_outgoing_bubble"
-        android:paddingStart="8dp"
-        android:paddingEnd="32dp">
+        android:id="@+id/in_chat_text_parent"
+        android:background="@drawable/shape_incoming_bubble"
+        android:paddingStart="24dp"
+        android:paddingEnd="8dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -24,10 +23,10 @@
             android:orientation="horizontal"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/out_chat_text_message">
+            app:layout_constraintTop_toBottomOf="@+id/in_chat_text_message">
 
             <TextView
-                android:id="@+id/out_chat_text_time"
+                android:id="@+id/in_chat_text_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
@@ -36,17 +35,10 @@
                 android:text="2:45 PM"
                 android:textSize="12sp" />
 
-            <ImageView
-                android:id="@+id/out_chat_text_message_state"
-                android:layout_width="17dp"
-                android:layout_height="17dp"
-                android:layout_weight="1"
-                app:srcCompat="@drawable/ic_read" />
-
         </LinearLayout>
 
         <com.vanniktech.emoji.EmojiTextView
-            android:id="@+id/out_chat_text_message"
+            android:id="@+id/in_chat_text_message"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"

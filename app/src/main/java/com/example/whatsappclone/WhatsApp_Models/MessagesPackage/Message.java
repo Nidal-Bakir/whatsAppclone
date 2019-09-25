@@ -7,6 +7,8 @@ public abstract class Message {
     private int messageState;
     private String phoneNumber;
 
+
+
     public Message(int id, String phoneNumber, String messageUid, int messageState, long date) {
         this.id = id;
         this.messageUid = messageUid;
@@ -33,5 +35,9 @@ public abstract class Message {
 
     public String getPhoneNumber() {
         return phoneNumber;
+    }
+
+    public void setMessageState(int messageState) {
+        this.messageState = messageState;
     }
 }
