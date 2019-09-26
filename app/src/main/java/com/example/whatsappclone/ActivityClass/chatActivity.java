@@ -3,6 +3,7 @@ package com.example.whatsappclone.ActivityClass;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
@@ -61,7 +62,9 @@ import android.view.Menu;
 
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewAnimationUtils;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -93,6 +96,9 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
     private FirebaseFirestore fireStore = FirebaseFirestore.getInstance();
     private CollectionReference profilesCollection = fireStore.collection("profile");
     private NotificationClass notificationClass;
+    private LinearLayout chat_media_parent;
+    private CardView chat_card_media;
+    private boolean isShow = false;
 
 
     // for send button
@@ -140,6 +146,8 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
         profileImage = toolbar.findViewById(R.id.chat_profile_image);
         chatLayoutRoot = findViewById(R.id.chat_Root);
         messageEditText = findViewById(R.id.chat_message);
+        chat_media_parent = findViewById(R.id.chat_media_parent);
+        chat_card_media = findViewById(R.id.chat_card_media);
         // init the popupEmoji
         emojiPopup = EmojiPopup.Builder.fromRootView(chatLayoutRoot).setOnEmojiPopupDismissListener(new OnEmojiPopupDismissListener() {
             @Override
@@ -185,6 +193,7 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
         messageEditText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                hideMediaLayout();
                 if (emojiPopup.isShowing()) {
                     emojiPopup.dismiss();
                     emoji.setImageResource(R.drawable.ic_emojis);
@@ -250,6 +259,23 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
                     emoji.setImageResource(R.drawable.ic_keyboard);
                 }
                 emojiPopup.toggle();
+                hideMediaLayout();
+            }
+        });
+        // show the media layout
+        attachFile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (isShow)
+                    hideMediaLayout();
+                else
+                    showMediaLayout();
+            }
+        });
+        camera.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                hideMediaLayout();
             }
         });
 
@@ -316,6 +342,7 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
         send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                hideMediaLayout();
                 if (sendState == SendState.TEXT) {
                     Calendar calendar = Calendar.getInstance();
                     String textMessage = String.valueOf(messageEditText.getText());
@@ -334,6 +361,53 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
             }
         });
         droidNet.addInternetConnectivityListener(this);
+    }
+
+    private void hideMediaLayout() {
+        if (isShow) {
+            int x = chat_media_parent.getWidth() - (chat_media_parent.getWidth() / 3);
+            int y = chat_media_parent.getHeight();
+            int startRadius = Math.max(chat_media_parent.getWidth(), chat_media_parent.getHeight());
+            int endRadius = 0;
+            Animator anim = ViewAnimationUtils.createCircularReveal(chat_card_media, x, y, startRadius, endRadius);
+            anim.addListener(new Animator.AnimatorListener() {
+                @Override
+                public void onAnimationStart(Animator animator) {
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animator) {
+                    chat_card_media.setVisibility(View.GONE);
+                }
+
+                @Override
+                public void onAnimationCancel(Animator animator) {
+                }
+
+                @Override
+                public void onAnimationRepeat(Animator animator) {
+                }
+            });
+            anim.setDuration(500);
+            anim.start();
+            isShow = false;
+        }
+    }
+
+    private void showMediaLayout() {
+        if (!isShow) {
+            int x = chat_media_parent.getWidth() - (chat_media_parent.getWidth() / 3);
+            int y = chat_media_parent.getHeight();
+            int startRadius = 0;
+            int endRadius = (int) Math.hypot(chat_media_parent.getWidth(), chat_media_parent.getHeight());
+            chat_card_media.setVisibility(View.VISIBLE);
+            Animator anim = ViewAnimationUtils.createCircularReveal(chat_card_media, x, y, startRadius, endRadius);
+            anim.setDuration(500);
+            anim.start();
+            isShow = true;
+
+        }
+
     }
 
     void eventListener() {
@@ -411,7 +485,7 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
             dataBase.updateAllHoledMessages();
         }
         BaseChatActivity2.isConnected = isConnected;
-        Log.d(TAG, "onInternetConnectivityChanged: "+isConnected);
+        Log.d(TAG, "onInternetConnectivityChanged: " + isConnected);
     }
 
     @Override
@@ -440,7 +514,6 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
     }
 
 
-
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -451,7 +524,10 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
     public void onBackPressed() {
         dataBase.reSetMessageCount(otherUserPhoneNumberThisChat);
         droidNet.removeInternetConnectivityChangeListener(this);
-        super.onBackPressed();
+        if (isShow)
+            hideMediaLayout();
+        else
+            super.onBackPressed();
 
     }
 
