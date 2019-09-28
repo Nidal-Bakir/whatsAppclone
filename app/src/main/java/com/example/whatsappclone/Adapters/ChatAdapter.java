@@ -1,6 +1,7 @@
 package com.example.whatsappclone.Adapters;
 
 import android.content.Context;
+import android.net.Uri;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -12,7 +13,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.example.whatsappclone.R;
 import com.example.whatsappclone.WhatsAppDataBase.DataBase;
 import com.example.whatsappclone.WhatsAppFireStore.UserSettings;
@@ -23,6 +26,14 @@ import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.Message;
 import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.TextMessage;
 import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.VideoMessage;
 import com.example.whatsappclone.WhatsApp_Models.MessagesPackage.VoiceMessage;
+import com.example.whatsappclone.WhatsApp_Models.Status;
+import com.google.android.gms.tasks.Continuation;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.storage.OnProgressListener;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 import com.vanniktech.emoji.EmojiTextView;
 
 import androidx.annotation.NonNull;
@@ -52,9 +63,14 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private static final int IN_FILE_VIEW = 12;
     private List<Message> messageList;
     private static final String TAG = "ChatAdapter";
+    private Context context;
+    private DataBase dataBase;
+
 
     public ChatAdapter(Context context, List<Message> messageList) {
         this.messageList = messageList;
+        this.context = context;
+        dataBase = new DataBase(context);
     }
 
     public void addMessage(MessageModel messageModel) {
@@ -67,7 +83,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                             Long.parseLong(messageModel.getDate()),
                             messageModel.getTextMessage());
             messageList.add(textMessage);
-            notifyItemInserted(messageList.size());
         } else if (messageModel.getImagePath() != null || messageModel.getImageUrl() != null) {
             ImageMessage imageMessage =
                     new ImageMessage(0,
@@ -77,8 +92,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                             Long.parseLong(messageModel.getDate()),
                             messageModel.getImageUrl(),
                             messageModel.getImagePath());
+            imageMessage.setUploadTask(messageModel.getUploadTask());
             messageList.add(imageMessage);
-            notifyItemInserted(messageList.size());
         } else if (messageModel.getVoicePath() != null || messageModel.getVoiceUrl() != null) {
             VoiceMessage voiceMessage =
                     new VoiceMessage(0,
@@ -89,7 +104,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                             messageModel.getVoiceUrl(),
                             messageModel.getVoicePath());
             messageList.add(voiceMessage);
-            notifyItemInserted(messageList.size());
         } else if (messageModel.getVideoPath() != null || messageModel.getVideoUrl() != null) {
             VideoMessage videoMessage =
                     new VideoMessage(0,
@@ -100,7 +114,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                             messageModel.getVideoUrl(),
                             messageModel.getVideoPath());
             messageList.add(videoMessage);
-            notifyItemInserted(messageList.size());
         } else if (messageModel.getFilePath() != null || messageModel.getFileUrl() != null) {
             FileMessage fileMessage =
                     new FileMessage(0,
@@ -111,8 +124,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                             messageModel.getFileUrl(),
                             messageModel.getFilePath());
             messageList.add(fileMessage);
-            notifyItemInserted(messageList.size());
         }
+        notifyItemInserted(messageList.size());
     }
 
     public void updateMessage(String messageUid, DataBase.MessageState messageState) {
@@ -246,7 +259,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, int position) {
         // out going messages
         if (holder instanceof Out_ShortTextViewHolder) { // Short text message *****
             Out_ShortTextViewHolder shortTextViewHolder = (Out_ShortTextViewHolder) holder;
@@ -323,7 +336,6 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             }
 
         } else if (holder instanceof Out_ImageViewHolder) {// Image message *****
-
 
         } else if (holder instanceof Out_VoiceViewHolder) {// Voice message *****
 

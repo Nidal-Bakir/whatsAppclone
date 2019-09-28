@@ -1,6 +1,9 @@
 package com.example.whatsappclone.WhatsApp_Models;
 
+import android.net.Uri;
+
 import com.google.firebase.firestore.Exclude;
+import com.google.firebase.storage.UploadTask;
 
 public class MessageModel {
     private String phoneNumber;
@@ -13,9 +16,30 @@ public class MessageModel {
     private int messageState;
     private String date;
     private String voicePath;
-    private String imagePath;
+    private Uri imagePath;
     private String videoPath;
     private String filePath;
+    private UploadTask uploadTask;
+
+    public void setTextMessage(String textMessage) {
+        this.textMessage = textMessage;
+    }
+
+    public void setVoiceUrl(String voiceUrl) {
+        this.voiceUrl = voiceUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public void setVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
+    }
+
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
+    }
 
     @Exclude
     public String getVoicePath() {
@@ -27,11 +51,11 @@ public class MessageModel {
     }
 
     @Exclude
-    public String getImagePath() {
+    public Uri getImagePath() {
         return imagePath;
     }
 
-    public void setImagePath(String imagePath) {
+    public void setImagePath(Uri imagePath) {
         this.imagePath = imagePath;
     }
 
@@ -52,8 +76,6 @@ public class MessageModel {
     public void setFilePath(String filePath) {
         this.filePath = filePath;
     }
-
-
 
 
     public MessageModel() {
@@ -112,5 +134,14 @@ public class MessageModel {
 
     public void setMessageUid(String messageUid) {
         this.messageUid = messageUid;
+    }
+
+    @Exclude
+    public UploadTask getUploadTask() {
+        return uploadTask;
+    }
+
+    public void setUploadTask(UploadTask uploadTask) {
+        this.uploadTask = uploadTask;
     }
 }

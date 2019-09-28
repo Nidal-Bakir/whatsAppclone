@@ -6,6 +6,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.BaseColumns;
 import android.util.Log;
@@ -877,7 +878,7 @@ public class DataBase extends SQLiteOpenHelper {
             // send message that you are delivered the message
             WorkEvent workEvent;
             if (messageModel.getPhoneNumber().equals(UserSettings.PHONENUMBER)) {
-               // messageModel.setMessageState(ON_SERVER);
+                // messageModel.setMessageState(ON_SERVER);
 
                 // set the event to new message
                 workEvent = new WorkEvent(UserSettings.PHONENUMBER, MessageState.NUN, true, false, messageModel);
@@ -904,6 +905,47 @@ public class DataBase extends SQLiteOpenHelper {
             if (!fromService)
                 chatTableListener.onAddNewMessage(workEvent.getMessageModel(), conversation);
         }
+    }
+
+    public void addMediaToChat(String userPhoneNumber, MessageModel messageModel) {
+        // userPhoneNumber it is the same table name
+        database = this.getWritableDatabase();
+        database.execSQL("CREATE TABLE IF NOT EXISTS "
+                + userPhoneNumber.replace("+", "T") + " ( "
+                + ChatTable.ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + ChatTable.PHONE_NUMBER + " TEXT,"
+                + ChatTable.MESSAGE_UID + " TEXT, "
+                + ChatTable.MESSAGE + " TEXT,"
+                + ChatTable.VOICE_URL + " TEXT,"
+                + ChatTable.VOICE_PATH + " TEXT,"
+                + ChatTable.IMAGE_URL + " TEXT,"
+                + ChatTable.IMAGE_PATH + " TEXT,"
+                + ChatTable.VIDEO_URL + " TEXT,"
+                + ChatTable.VIDEO_PATH + " TEXT,"
+                + ChatTable.FILE_URL + " TEXT,"
+                + ChatTable.FILE_PATH + " TEXT,"
+                + ChatTable.MESSAGE_STATE + " INTEGER,"
+                + ChatTable.DATE + " INTEGER"
+                + " )"
+        );
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(ChatTable.PHONE_NUMBER, messageModel.getPhoneNumber());
+        contentValues.put(ChatTable.MESSAGE_UID, messageModel.getMessageUid());
+        contentValues.put(ChatTable.MESSAGE, messageModel.getTextMessage());
+        contentValues.put(ChatTable.IMAGE_URL, messageModel.getImageUrl());
+        contentValues.put(ChatTable.VOICE_URL, messageModel.getVoiceUrl());
+        contentValues.put(ChatTable.VIDEO_URL, messageModel.getVideoUrl());
+        contentValues.put(ChatTable.FILE_URL, messageModel.getFileUrl());
+        contentValues.put(ChatTable.MESSAGE_STATE, WAIT_NETWORK);
+        contentValues.put(ChatTable.DATE, Long.parseLong(messageModel.getDate()));
+        if (!checkIfTheMessageExists(messageModel.getMessageUid(), userPhoneNumber)) {
+            database.insert(userPhoneNumber.replace("+", "T"), null, contentValues);
+            // add or update conversation
+            Conversation conversation = addConversation(new Conversation(userPhoneNumber, NOT_MUTE, 0, 0), messageModel.getPhoneNumber());
+            // update chat recycler view items
+            chatTableListener.onAddNewMessage(messageModel, conversation);
+        }
+
     }
 
     public void chatTableListener(ChatTableListener chatTableListener) {
@@ -978,15 +1020,15 @@ public class DataBase extends SQLiteOpenHelper {
             String fileUrl = cursor.getString(cursor.getColumnIndex(ChatTable.FILE_URL));
             String filePath = cursor.getString(cursor.getColumnIndex(ChatTable.FILE_PATH));
 
-            if (!message.equals("")) {
+            if (message!=null) {
                 bundle.putString("message", message);
-            } else if (!imagePath.equals("") || !imageUrl.equals("")) {
+            } else if (imagePath!=null || imageUrl!=null) {
                 bundle.putString("message", "Image");
-            } else if (!voicePath.equals("") || !voiceUrl.equals("")) {
+            } else if (voicePath!=null || voiceUrl!=null) {
                 bundle.putString("message", "Voice message");
-            } else if (!videoPath.equals("") || !videoUrl.equals("")) {
+            } else if (videoPath!=null || videoUrl!=null) {
                 bundle.putString("message", "Video");
-            } else if (!filePath.equals("") || !fileUrl.equals("")) {
+            } else if (filePath!=null || fileUrl!=null) {
                 bundle.putString("message", "File");
             }
 
@@ -1053,7 +1095,7 @@ public class DataBase extends SQLiteOpenHelper {
             chatTableListener.onDeleteMessage(userPhoneNumber, messageModel);
     }
 
-    private void addMessageToMessageHolder(String messageUid, String tableName) {
+    public void addMessageToMessageHolder(String messageUid, String tableName) {
         database = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put(MessagesHolderTable.MESSAGE_UID, messageUid);
@@ -1290,7 +1332,7 @@ public class DataBase extends SQLiteOpenHelper {
                     TextMessage textMessage = new TextMessage(id, messageOwner, messageUid, messageState, time, message);
                     messageStack.push(textMessage);
                 } else if (!imagePath.equals("") || !imageUrl.equals("")) {
-                    ImageMessage imageMessage = new ImageMessage(id, messageOwner, messageUid, messageState, time, imageUrl, imagePath);
+                    ImageMessage imageMessage = new ImageMessage(id, messageOwner, messageUid, messageState, time, imageUrl, Uri.parse(imagePath));
                     messageStack.push(imageMessage);
                 } else if (!voicePath.equals("") || !voiceUrl.equals("")) {
                     VoiceMessage voiceMessage = new VoiceMessage(id, messageOwner, messageUid, messageState, time, voiceUrl, voicePath);

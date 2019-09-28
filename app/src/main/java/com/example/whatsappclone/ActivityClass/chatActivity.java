@@ -1,6 +1,7 @@
 package com.example.whatsappclone.ActivityClass;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.cardview.widget.CardView;
@@ -37,6 +38,8 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.vanniktech.emoji.EmojiEditText;
 import com.vanniktech.emoji.EmojiManager;
 import com.vanniktech.emoji.EmojiPopup;
@@ -52,6 +55,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.text.Editable;
@@ -77,8 +81,9 @@ import java.util.Stack;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-//implements  DroidListener
+
 public class chatActivity extends AppCompatActivity implements DroidListener {
+    private static final int GALLERY_REQUEST_CODE = 480;
     private String userUid = null;
     private String contactName = null;
     private String otherUserPhoneNumberThisChat = null;
@@ -99,6 +104,12 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
     private LinearLayout chat_media_parent;
     private CardView chat_card_media;
     private boolean isShow = false;
+    private ImageButton location_bt, gallery_bt, contact_bt, audio_bt, file_bt, camera_bt;
+    private StorageReference StoregRef=FirebaseStorage.getInstance()
+            .getReference().child(UserSettings.PHONENUMBER).child("chatStorage");
+    private StorageReference userStoregRef;
+
+
 
 
     // for send button
@@ -148,6 +159,12 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
         messageEditText = findViewById(R.id.chat_message);
         chat_media_parent = findViewById(R.id.chat_media_parent);
         chat_card_media = findViewById(R.id.chat_card_media);
+        location_bt = findViewById(R.id.send_location);
+        gallery_bt = findViewById(R.id.choose_from_gallery);
+        contact_bt = findViewById(R.id.open_contacts);
+        audio_bt = findViewById(R.id.choose_audio);
+        file_bt = findViewById(R.id.choose_file);
+        camera_bt = findViewById(R.id.open_camera);
         // init the popupEmoji
         emojiPopup = EmojiPopup.Builder.fromRootView(chatLayoutRoot).setOnEmojiPopupDismissListener(new OnEmojiPopupDismissListener() {
             @Override
@@ -161,6 +178,8 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
         emoji = findViewById(R.id.chat_emoji);
         send = findViewById(R.id.chat_send);
         recyclerView = findViewById(R.id.chat_recycler_view);
+        // init the storage for this user
+        userStoregRef=StoregRef.child(otherUserPhoneNumberThisChat);
         // delete the stored Notification for this user
         dataBase.deleteNotificationForUser(otherUserPhoneNumberThisChat);
         //set profile image for the user
@@ -360,6 +379,51 @@ public class chatActivity extends AppCompatActivity implements DroidListener {
                     Toast.makeText(chatActivity.this, "click and hold to record your voice", Toast.LENGTH_SHORT).show();
             }
         });
+        audio_bt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(chatActivity.this, "in the next VERSION", Toast.LENGTH_SHORT).show();
+            }
+        });
+        camera_bt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(chatActivity.this, "in the next VERSION", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        contact_bt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(chatActivity.this, "in the next VERSION", Toast.LENGTH_SHORT).show();
+            }
+        });
+        file_bt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(chatActivity.this, "in the next VERSION", Toast.LENGTH_SHORT).show();
+            }
+        });
+        gallery_bt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                Toast.makeText(chatActivity.this, "in the next VERSION", Toast.LENGTH_SHORT).show();
+//                Intent intent = new Intent();
+//                intent.setType("image/*,video/*");
+//                intent.setAction(Intent.ACTION_GET_CONTENT);
+//                startActivityForResult(Intent.createChooser(intent, "select image or video"), GALLERY_REQUEST_CODE);
+
+            }
+        });
+        location_bt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(chatActivity.this, "in the next VERSION", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
         droidNet.addInternetConnectivityListener(this);
     }
 

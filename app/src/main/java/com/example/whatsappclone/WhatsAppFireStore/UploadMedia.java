@@ -21,6 +21,7 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
@@ -56,6 +57,11 @@ public class UploadMedia {
         final StorageReference profileImagestorageReference = userStorageReference.child(PROFILE_FOLDER).child(PROFILE_IMAGE);
         profileImagestorageReference.delete(); //remove the image and replace it
         UploadTask uploadTask = profileImagestorageReference.putFile(imageUri);
+        uploadTask.addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+            }
+        });
         Task<Uri> task = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
             @Override
             public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
@@ -83,6 +89,7 @@ public class UploadMedia {
                 Toast.makeText(context, "can not upload profile image!", Toast.LENGTH_SHORT).show();
             }
         });
+
     }
 
     public void OnComplete(OnProfileUploadCompleteListener onProfileUploadCompleteListener) {

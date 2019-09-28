@@ -209,7 +209,7 @@
                         android:background="@drawable/send_button_shape">
 
                         <ImageButton
-                            android:id="@+id/imageButton2"
+                            android:id="@+id/choose_from_gallery"
                             android:layout_width="60dp"
                             android:layout_height="60dp"
                             android:layout_gravity="center"
@@ -246,7 +246,7 @@
                         android:background="@drawable/send_button_shape">
 
                         <ImageButton
-                            android:id="@+id/imageButton3"
+                            android:id="@+id/open_camera"
                             android:layout_width="60dp"
                             android:layout_height="60dp"
 
@@ -284,7 +284,7 @@
                         android:background="@drawable/send_button_shape">
 
                         <ImageButton
-                            android:id="@+id/imageButton4"
+                            android:id="@+id/choose_file"
                             android:layout_width="60dp"
 
                             android:layout_height="60dp"
@@ -324,7 +324,7 @@
                         android:background="@drawable/send_button_shape">
 
                         <ImageButton
-                            android:id="@+id/imageButton5"
+                            android:id="@+id/open_contacts"
                             android:layout_width="60dp"
                             android:layout_height="60dp"
                             android:layout_gravity="center"
@@ -364,7 +364,7 @@
                         android:background="@drawable/send_button_shape">
 
                         <ImageButton
-                            android:id="@+id/imageButton6"
+                            android:id="@+id/choose_audio"
                             android:layout_width="60dp"
                             android:layout_height="60dp"
                             android:background="?attr/selectableItemBackgroundBorderless"
@@ -401,7 +401,7 @@
                         android:background="@drawable/send_button_shape">
 
                         <ImageButton
-                            android:id="@+id/imageButton7"
+                            android:id="@+id/send_location"
                             android:layout_width="60dp"
                             android:layout_height="60dp"
 
